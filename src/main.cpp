@@ -110,28 +110,27 @@ int main()
       // newWord is true when the last word has been completed and
       // the new one has not been started
       bool newWord = true;
+      // skipNext is true when the next command should be skipped (due to && or
+      // ||) When this is true, the loop will only check for connectors
+      bool skipNext = false;
+      // returnValue hold the exit code of the last run command
+      int returnValue;
       for (unsigned i = 0; i < userin.size();)
       {
-         if (isspace(userin.at(i)))
-         {
-            // advance i
-            ++i;
-            newWord = true;
-            continue;
-         }
          // check for && connector
          if (userin.size() - i >= 2 && userin.at(i) == '&' && userin.at(i + 1) == '&')
          {
             // advance i
             i += 2;
-            // execute command
-            int returnValue = execute_command(current_command);
+            // execute command, update returnValue
+            if (!skipNext)
+               returnValue = execute_command(current_command);
 
             // erase current_command
             current_command.erase(current_command.begin(), current_command.end());
-            // don't continue if the command failed
-            if (returnValue) break;
             newWord = true;
+            // don't execute next command if the current command failed
+            skipNext = (returnValue) ? true : false;
             assert(cout << "&&&&&&&&&&&&&&&&&&&&&&" << endl << endl);
          }
          // check for || connector
@@ -139,14 +138,15 @@ int main()
          {
             // advance i
             i += 2;
-            // execute command
-            int returnValue = execute_command(current_command);
+            // execute command, update returnValue
+            if (!skipNext)
+               returnValue = execute_command(current_command);
 
             // erase current_command
             current_command.erase(current_command.begin(), current_command.end());
             newWord = true;
-            // don't continue if the command succeeded
-            if (!returnValue) break;
+            // skip the next command if the current command succeeded
+            skipNext = (!returnValue) ? true : false;
             assert(cout << "||||||||||||||||||||||" << endl << endl);
          }
          // check for ; connector
@@ -159,16 +159,29 @@ int main()
             // erase current_command
             current_command.erase(current_command.begin(), current_command.end());
             newWord = true;
+            // the command after ; always executes
+            skipNext = false;
             assert(cout << ";;;;;;;;;;;;;;;;;;;;;" << endl << endl);
             // continue regardless of return value
+         } else if (skipNext)
+         {
+            ++i;
+            // we've checked for connectors, we should skip the rest
+            continue;  
+         } else if (isspace(userin.at(i)))
+         {
+            // advance i
+            ++i;
+            newWord = true;
+            continue;
          } else {
+            // The character is not a connector, add it to current_command
             // add a new string to current_command if necessary
             if (newWord)
             {
                current_command.push_back(string());
                newWord = false;
             }
-            // The character is not a token, so add it to current_command
             current_command.back().push_back(userin.at(i));
             ++i;
          }
