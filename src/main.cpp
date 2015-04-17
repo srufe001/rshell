@@ -4,6 +4,11 @@
  * is it even appropriate to use perror with these messages?
  * specifically, getlogin() does not mention serring errno
  *
+ * TODO VERY VERY IMPORTANT - bash does it correctly, you do it incorrectly
+ * in the command "fail || thing1 ; thing2" bash runs fail, thing2, but rshell
+ * only runs fail
+ *
+ *
  * is it ok for fork failure to result in a simple return? (continue on with the
  * next command). I return 1 (error);
  *
@@ -18,6 +23,8 @@
  *
  * extra make targets? I have run for convenience but the assignment says 2
  *
+ * extra files (such as .gitignore)
+ *
  * docs: no command is success. unrecognized command is an error, and a failure
  * man doesn't let you look at the document, when rshell is run with ":make run"
  * from within vim
@@ -25,8 +32,6 @@
  * a terminal". I guess rshell is not good enough for Bram
  * output of ls is in a column instead of in a row, if rshell is run with
  * ":make run" from within vim
- * in the command "fail || thing1 ; thing2" bash runs fail, thing2, but rshell
- * only runs fail
  */
 
 // comment for information about rshells internal stuff as it executes
