@@ -4,6 +4,10 @@
  * is it even appropriate to use perror with these messages?
  * specifically, getlogin() does not mention serring errno
  *
+ * Valgrind? I know I have leaks but they're followed by an execvp or exit
+ * has problems with reachable: 187, 195 + 2
+ * has problems with possibly: 69, 103, 190 +2
+ *
  * TODO VERY VERY IMPORTANT - bash does it correctly, you do it incorrectly
  * in the command "fail || thing1 ; thing2" bash runs fail, thing2, but rshell
  * only runs fail
@@ -49,6 +53,7 @@
 #include<unistd.h>
 #include<sys/types.h>
 #include<sys/wait.h>
+#include<stdio.h>
 
 using namespace std;
 
@@ -56,7 +61,7 @@ unsigned execute_command(vector<string>);
 
 int main()
 {
-   // get information to print at the prompt
+   // get username and hostname to print at the prompt
    char * usernameptr = getlogin();
    string username;
    if (usernameptr == 0)
@@ -65,7 +70,6 @@ int main()
    } else {
       username.assign(usernameptr);
    }
-
    // I will print up to 16 characters of the hostname
    const int HOST_NAME_MAX = 255;      // POSIX guarantees it won't be longer than 255 bytes
    char hostname[HOST_NAME_MAX + 1];   // I make the array hold 256 bytes because I don't know
@@ -83,6 +87,7 @@ int main()
       hostname[HOST_NAME_MAX] = '\0'; 
    }
 
+   // this loop gets input from the user and executes it
    while (true)
    {
       // print prompt
@@ -102,19 +107,21 @@ int main()
 
       // current_command stores all white-space seperated strings found so far.
       // when a connector is found, current_command is used to execute a command and
-      // is then emptied
+      // is then erased in preparation for the next command
       // strings are added by adding each character to the last string in
       // current_command. When a whitespace is found, a new, empty string is
       // pushed to the back of current_command
       vector<string> current_command;
       // newWord is true when the last word has been completed and
-      // the new one has not been started
+      // the new one has not been started yet (such as after a whitespace or
+      // connector like ;)
       bool newWord = true;
       // skipNext is true when the next command should be skipped (due to && or
-      // ||) When this is true, the loop will only check for connectors
+      // ||) When this is true, the for loop will only check for connectors
       bool skipNext = false;
       // returnValue hold the exit code of the last run command
       int returnValue;
+      // this loop parses the user's input and executes it
       for (unsigned i = 0; i < userin.size();)
       {
          // check for && connector
@@ -195,7 +202,7 @@ int main()
    return 0;
 }
 
-unsigned execute_command(vector<string> command)
+unsigned execute_command(vector<string>& command)
 {
    if (command.size() == 0) return 0;  // no command returns true
 
