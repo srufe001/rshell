@@ -12,6 +12,8 @@
  *
  * return value - what if WIFEXITED returns false?
  *
+ * double check - is heap memory freed on execvp()? How about exit()?
+ *
  * docs: no command is success. unrecognized command is an error, and a failure
  * man doesn't let you look at the document
  * vim, however, does let you edit, although it warns you that output is "not to
@@ -28,10 +30,12 @@
 #include<cstdlib>
 #include<cctype>
 #include<vector>
+#include<cassert>
+#include<cstring>
+
 #include<unistd.h>
 #include<sys/types.h>
 #include<sys/wait.h>
-#include<cassert>
 
 using namespace std;
 
@@ -47,14 +51,14 @@ int main()
       // get user input
       string userin;
       getline(cin, userin);
-      //assert(cout << "user inputted: " << userin << endl);
+      assert(cout << "################ user inputted: " << userin << endl);
 
       // !!!divide up user input
       // slice off comment (everything after and including '#', if present)
       // TODO: you may have to move this down if you ever want to include "" or
       // ''
       userin = userin.substr(0, userin.find("#", 0)); 
-      //assert(cout << "after comment removal: " << userin << endl);
+      assert(cout << "######## after comment removal: " << userin << endl << endl);
 
       // current_command stores all white-space seperated strings found so far.
       // when a connector is found, current_command is used to execute a command and
@@ -164,7 +168,7 @@ unsigned execute_command(vector<string> command)
    // fork failed
    if (pid == -1)
    {
-      perror("fork");
+      perror("forking failed");
       exit(1);
       //return 1; // see todo section at the top of this page
    }
@@ -184,7 +188,22 @@ unsigned execute_command(vector<string> command)
       }
       argv[command.size()] = NULL;
       execvp(argv[0], argv);
-      perror("execvp");
+      // if we get to this point, execvp failed. print an error message
+      char errorStr[80];
+      strcpy(errorStr, "Failed to execute \"");
+      if (strlen(argv[0]) > 50)
+      {
+         // I can screw with this string because no one's using it after this,
+         // because I am doing exit(1)
+         argv[0][47] = '.';
+         argv[0][48] = '.';
+         argv[0][49] = '.';
+         argv[0][50] = '\0';
+      }
+      strcat(errorStr, argv[0]);
+      strcat(errorStr, "\"");
+      perror(errorStr);
+      //IMPORTANT if you don't exit(1) (change it to return or whatever), you have to free memory allocated to argv
       exit(1);
       //return 1; // see todo section at the top of this page
    }
@@ -192,7 +211,7 @@ unsigned execute_command(vector<string> command)
    int status;
    if (-1 == wait(&status))
    {
-      perror("wait");
+      perror("wait failed");
       exit(1);
    }
    // determine the return value of the child
