@@ -1,6 +1,8 @@
 /* TODO: rewrite with lex/yacc for easy extension in the future
  * is perror only for syscalls that can fail or should we use it for all error
  * messages?
+ * is it even appropriate to use perror with these messages?
+ * specifically, getlogin() does not mention serring errno
  *
  * is it ok for fork failure to result in a simple return? (continue on with the
  * next command). I return 1 (error);
@@ -14,11 +16,17 @@
  *
  * double check - is heap memory freed on execvp()? How about exit()?
  *
+ * extra make targets? I have run for convenience but the assignment says 2
+ *
  * docs: no command is success. unrecognized command is an error, and a failure
- * man doesn't let you look at the document
+ * man doesn't let you look at the document, when rshell is run with ":make run"
+ * from within vim
  * vim, however, does let you edit, although it warns you that output is "not to
  * a terminal". I guess rshell is not good enough for Bram
- * output of ls is in a column instead of in a row
+ * output of ls is in a column instead of in a row, if rshell is run with
+ * ":make run" from within vim
+ * in the command "fail || thing1 ; thing2" bash runs fail, thing2, but rshell
+ * only runs fail
  */
 
 // comment for information about rshells internal stuff as it executes
@@ -43,10 +51,37 @@ unsigned execute_command(vector<string>);
 
 int main()
 {
+   // get information to print at the prompt
+   char * usernameptr = getlogin();
+   string username;
+   if (usernameptr == 0)
+   {
+      perror("unable to get login information");
+   } else {
+      username.assign(usernameptr);
+   }
+
+   // I will print up to 16 characters of the hostname
+   const int HOST_NAME_MAX = 255;      // POSIX guarantees it won't be longer than 255 bytes
+   char hostname[HOST_NAME_MAX + 1];   // I make the array hold 256 bytes because I don't know
+                                       // if the 255 bytes includes the null character
+   if (-1 == gethostname(hostname, HOST_NAME_MAX + 1))
+   {
+      // if gethostname fails, print error message, and make hostname contain
+      // nothing
+      perror("unable to get hostname");
+      hostname[0] = '\0';
+   } else {
+      // POSIX does not specify whether the last character of hostname is NULL
+      // if the hostname is longer than the size of hostname, so I guarantee
+      // that hostname has a terminating null character
+      hostname[HOST_NAME_MAX] = '\0'; 
+   }
+
    while (true)
    {
       // print prompt
-      cout << "$ ";
+      cout << username << "@" << hostname << "$ ";
 
       // get user input
       string userin;
