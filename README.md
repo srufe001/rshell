@@ -8,9 +8,9 @@ rshell
 
 `$ git clone https://github.com/srufe001/rshell.git
 
-$ cd rshell
+`$ cd rshell`
 
-$ make`
+`$ make`
 
 You can now run rshell by typing `bin/rshell` into the command prompt
 
