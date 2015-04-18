@@ -256,6 +256,6 @@ unsigned execute_command(vector<string> command)
       assert(cout << "==========RETURNED: " << WEXITSTATUS(status) << endl << endl);
       return WEXITSTATUS(status);
    }
-   assert(cout << "child did not return correctly" << endl << endl);
+   perror("WIFEXITED failed");
    return 1;   // if the child did not exit normally, assume that the return value is a fail
 }
