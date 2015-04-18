@@ -4,30 +4,9 @@
  * is it even appropriate to use perror with these messages?
  * specifically, getlogin() does not mention serring errno
  *
- * Valgrind? I know I have leaks but they're followed by an execvp or exit
- * has problems with reachable: 187, 195 + 2
- * has problems with possibly: 69, 103, 190 +2
- *
- * TODO VERY VERY IMPORTANT - bash does it correctly, you do it incorrectly
- * in the command "fail || thing1 ; thing2" bash runs fail, thing2, but rshell
- * only runs fail
- *
- *
- * is it ok for fork failure to result in a simple return? (continue on with the
- * next command). I return 1 (error);
- *
  * wait can be triggered if child is affected by signal? What if this happens?
  *
- * using -std=c++11 vs -ansi? they seem to override and I may need c++11. I
- * should check this
- *
  * return value - what if WIFEXITED returns false?
- *
- * double check - is heap memory freed on execvp()? How about exit()?
- *
- * extra make targets? I have run for convenience but the assignment says 2
- *
- * extra files (such as .gitignore)
  *
  * docs: no command is success. unrecognized command is an error, and a failure
  * man doesn't let you look at the document, when rshell is run with ":make run"
@@ -38,8 +17,7 @@
  * ":make run" from within vim
  */
 
-// comment for information about rshells internal stuff as it executes
-// commands
+// comment the next line for information about rshells internal stuff as it executes commands
 #define NDEBUG
 
 #include<iostream>
@@ -202,7 +180,7 @@ int main()
    return 0;
 }
 
-unsigned execute_command(vector<string>& command)
+unsigned execute_command(vector<string> command)
 {
    if (command.size() == 0) return 0;  // no command returns true
 
@@ -229,8 +207,7 @@ unsigned execute_command(vector<string>& command)
    if (pid == -1)
    {
       perror("forking failed");
-      exit(1);
-      //return 1; // see todo section at the top of this page
+      return 1;   // return that the command failed
    }
    // fork succeeded, and you are the child
    if (pid == 0)
@@ -251,6 +228,8 @@ unsigned execute_command(vector<string>& command)
       // if we get to this point, execvp failed. print an error message
       char errorStr[80];
       strcpy(errorStr, "Failed to execute \"");
+      // truncate argv[0] to 50 characters
+      // I don't know the max so I can't risk overflowing errorStr
       if (strlen(argv[0]) > 50)
       {
          // I can screw with this string because no one's using it after this,
@@ -263,9 +242,7 @@ unsigned execute_command(vector<string>& command)
       strcat(errorStr, argv[0]);
       strcat(errorStr, "\"");
       perror(errorStr);
-      //IMPORTANT if you don't exit(1) (change it to return or whatever), you have to free memory allocated to argv
       exit(1);
-      //return 1; // see todo section at the top of this page
    }
    // fork succeeded, and you are the parent
    int status;
