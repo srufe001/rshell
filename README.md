@@ -6,11 +6,13 @@ rshell is a simple shell created for a class at school
 Run the folling commands in the location in which you would like to install
 rshell
 
-`$ git clone https://github.com/srufe001/rshell.git
+```
+$ git clone https://github.com/srufe001/rshell.git
 
-`$ cd rshell`
+$ cd rshell
 
-`$ make`
+$ make
+```
 
 You can now run rshell by typing `bin/rshell` into the command prompt
 
