@@ -197,7 +197,6 @@ unsigned execute_command(vector<string> command)
    // check for "exit"
    if (command.at(0) == "exit")
    {
-      cout << "exiting rshell..." << endl;
       exit(0);
    }
 
