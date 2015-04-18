@@ -60,7 +60,7 @@ $ && echo Hi                     # this will print Hi
 
 $ ;; echo Hi                     # this will also print Hi
 
-$ notacommand && echo Hi         # this will __not__ print Hi
+$ notacommand && echo Hi         # this will NOT print Hi
 ```
 
 ### Comments ###
