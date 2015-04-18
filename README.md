@@ -20,15 +20,21 @@ You can now run rshell by typing `bin/rshell` into the command prompt
 
 ### Run any command: ###
 
-> `$ pwd`
-> `$ ls -a`
-> `$ ./my_executable`
+```
+$ pwd
+
+$ ls -a
+
+$ ./my_executable
+```
 
 ### built-in commands ###
 
 Type `exit` to exit rshell
 
-> `$ exit`
+```
+$ exit
+```
 
 ### Connectors ###
 
@@ -38,22 +44,32 @@ successfully,
 `||` executes the following command only if the previous command ran unsuccessfully, 
 and `;` runs the following command regardless of what the previous command returned.
 
-> `$ pwd && ls                      # this will execute pwd and ls`
-> `$ false || echo Hello World      # this print Hello World`
-> `$ mkdir myDir ; ls               # this will run both commands, one after another`
+```
+$ pwd && ls                      # this will execute pwd and ls
+
+$ false || echo Hello World      # this print Hello World
+
+$ mkdir myDir ; ls               # this will run both commands, one after another
+```
 
 No command is considered a success, and a command that does not exist is
 considered a failure:
 
-> `$ && echo Hi                     # this will print Hi`
-> `$ &&; echo Hi                    # this will also print Hi`
-> `$ notacommand && echo Hi         # this will __not__ print Hi`
+```
+$ && echo Hi                     # this will print Hi
+
+$ ;; echo Hi                     # this will also print Hi
+
+$ notacommand && echo Hi         # this will __not__ print Hi
+```
 
 ### Comments ###
 
 Any characters following a `#` are ignored by the shell
 
-> `$ echo this will be printed # but this will not`
+```
+$ echo this will be printed # but this will not
+```
 
 ## Errors ##
 
