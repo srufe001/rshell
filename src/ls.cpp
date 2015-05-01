@@ -1,8 +1,17 @@
 //TODO: look up how ls prints in columns
+//Do I have to delete stuff like the stat object
 
 #include<iostream>
+#include<unistd.h>
+#include<vector>
+#include<algorithm>
+#include<string>
 
 using namespace std;
+
+#define PRINTARR(arr, num_elements) { for (int i = 0; i < num_elements; ++i) \
+                                         cout << arr[i] << " "; \
+                                      cout << endl; } \
 
 bool show_hidden = false;
 bool recursive = false;
@@ -19,17 +28,21 @@ bool more_info = false;
 //    read the source code of ls
 // function for outputting a single file in -l
 
-int main(int argc, char** argv)
+// prints info on each file specified by the strings contained in the vector
+// "files"
+void print_files(const vector<string>& files)
 {
-   /* Process flags and arguments*/
-   // Set the proper booleans based on the flags, probably use getopts.
-   // Fill a list of directories to search (not including recursive ones).
-   // If this list is empty after all arguments have been processed, add "." to it.
-   
-   /* Printing output */
-   // For each file in the list
-      // call the printing function
+   cout << "printing files" << endl;
+   for (unsigned i = 0; i < files.size(); ++i)
+   {
+      cout << files.at(i) << " ";
+   }
+   cout << endl;
+}
 
+// prints the contents of a directory
+void print_contents(const string& dir)
+{
    /* Printing function */
    // *** You will need columns whether -l is present or not
    // If it is not a directory, print an error message.
@@ -46,7 +59,60 @@ int main(int argc, char** argv)
    // correct
    // Do not call on . and .., TODO what about other links?
    
+}
 
+int main(int argc, char** argv)
+{
+   /* Process flags */
+   cout << "arguments before getopt: ";
+   PRINTARR(argv, argc)
+   // Set the proper booleans based on the flags, probably use getopts.
+   int flag;
+   while (-1 != (flag = getopt(argc, argv, "Ral")))
+   {
+      switch (flag) {
+         case 'R':
+            recursive = true;
+            break;
+         case 'a':
+            show_hidden = true;
+            break;
+         case 'l':
+            more_info = true;
+            break;
+         default:
+            cout << flag << " is not a valid flag.\n";
+      }
+   }
+
+   /* Process non-flag arguments */
+   cout << "arguments after getopts: ";
+   PRINTARR(argv, argc)
+   argc -= optind; // set number of arguments to the number of non-flag arguments
+   argv += optind; // getopt rearranges all non-flag arguments to the end of argv, so the
+                   // following line points argv at the first of these arguments
+   // if no directories were given by the user to search, set the directories to
+   // search to be "." only.
+   
+   // fill a vector with directories to search
+   vector<string> dirs;
+   if (argc == 0)
+   {
+      dirs.push_back(string(".")); 
+   } else {
+      for (int i = 0; i < argc; ++i)
+         dirs.push_back(string(argv[i]));
+   }
+   // sort directories alphabetically
+   sort(dirs.begin(), dirs.end());
+   for (unsigned i = 0; i < dirs.size(); ++i)
+      cout << dirs.at(i) << " ";
+   cout << endl;
+   
+   /* Print output */
+   // For each file in the list, print errors for directories
+   for (int i = 0; i < argc; ++i)
+      print_contents(dirs.at(i)); // call the printing function
 
    return 0;
 }
