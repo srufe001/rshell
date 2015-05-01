@@ -1,5 +1,7 @@
 //TODO: look up how ls prints in columns
 //Do I have to delete stuff like the stat object
+//TODO IMPORTANT: do I need case-insensitive sorting
+//TODO block size appears to be doubled. idk what that's about
 
 #include<iostream>
 #include<unistd.h>
@@ -11,6 +13,7 @@
 #include<algorithm>
 #include<string>
 #include<cstring>
+#include<time.h>
 
 using namespace std;
 
@@ -35,12 +38,24 @@ bool more_info = false;
 
 // prints info on each file specified by the strings contained in the vector
 // "files", also prints subdirectories recursively if -R flag is enabled
+// TODO should I clean output of files that don't exist? I will never pass
+// nonexistant files into this in the current form of my program
+
+unsigned numDigits(int n)
+{
+   unsigned digits = 0;
+   while (n) {
+      n /= 10;
+      ++digits;
+   }
+   return digits;
+}
+
 void print_files(vector<string>& files)
 {
    sort(files.begin(), files.end());
 
    unsigned term_width = 80;
-   // -l is not used
    if (!more_info)
    {
       string output;
@@ -57,28 +72,120 @@ void print_files(vector<string>& files)
          }
       }
       cout << output << endl;
-   } else { // -l was used
+   } else {
       // get stat objects for everything
       vector<struct stat> stats;
+      vector<bool> stat_exists;
       for (unsigned i = 0; i < files.size(); ++i)
       {
          struct stat temp;
          if (-1 == stat(files.at(i).c_str(), &temp))
          {
             perror("unable to open file");   // TODO make more descriptive
+            stat_exists.push_back(false);
             continue;
          }
          stats.push_back(temp);
+         stat_exists.push_back(true);
       }
-      /*
-      int total_links = 0;
-      int max_user_name_length = 0;
-      int max_group_name_length = 0;
-      int max_linked_files_length = 0;
-      int max_bit_size_length = 0;
-      int max_date+length = 0;
-      for (int i = 0; 
-      */
+
+      // calculate unknown column widths and number of hard links
+      unsigned total_blocks = 0;
+      //int max_user_name_length = 0;
+      //int max_group_name_length = 0;
+      unsigned max_linked_files_length = 0;
+      unsigned max_bit_size_length = 0;
+      //int max_date_length = 0;
+      for (unsigned i = 0; i < files.size(); ++i)
+      {
+         if (stat_exists.at(i))
+         {
+            struct stat & filestat = stats.at(i);
+
+            total_blocks += filestat.st_blocks;
+
+            if (stats.at(i).st_size > max_bit_size_length)
+               max_bit_size_length = stats.at(i).st_size;
+
+            if (stats.at(i).st_size > max_bit_size_length)
+               max_bit_size_length = stats.at(i).st_size;
+
+            if (filestat.st_nlink > max_linked_files_length)
+               max_linked_files_length = filestat.st_nlink;
+
+            if (filestat.st_size > max_bit_size_length)
+               max_bit_size_length = filestat.st_size;
+         }
+      }
+      // calculate digits of max_bit_size_length and max_linked_files_length
+      max_bit_size_length = numDigits(max_bit_size_length);
+      max_linked_files_length = numDigits(max_linked_files_length);
+      
+      // output data
+      for (unsigned i = 0; i < files.size(); ++i)
+      {
+         if (stat_exists.at(i))
+         {
+            struct stat & filestat = stats.at(i);
+
+            // determine file type
+            char filetype[2];
+            string color;
+            if (filestat.st_mode & S_IFREG) {
+               filetype[0] = '-';
+               filetype[1] = '\0';
+            } else if (filestat.st_mode & S_IFDIR) {
+               filetype[0] = 'd';
+               filetype[1] = '/';
+            } else if (filestat.st_mode & S_IFCHR) {
+               filetype[0] = 'c';
+               filetype[1] = '\0';
+            } else if (filestat.st_mode & S_IFBLK) {
+               filetype[0] = 'b';
+               filetype[1] = '\0';
+            } else if (filestat.st_mode & S_IFIFO) {
+               filetype[0] = 'p';
+               filetype[1] = '\0';
+            } else if (filestat.st_mode & S_IFLNK) {
+               filetype[0] = 'l';
+               filetype[1] = '\0';
+            } else if (filestat.st_mode & S_IFSOCK) {
+               filetype[0] = 's';
+               filetype[1] = '\0';
+            }
+
+            // print file type
+            cout << filetype[0];
+
+            // print permissions
+            cout << ((filestat.st_mode & S_IRUSR) ? 'r' : '-')
+                 << ((filestat.st_mode & S_IWUSR) ? 'w' : '-')
+                 << ((filestat.st_mode & S_IXUSR) ? 'x' : '-')
+                 << ((filestat.st_mode & S_IRGRP) ? 'w' : '-')
+                 << ((filestat.st_mode & S_IWGRP) ? 'w' : '-')
+                 << ((filestat.st_mode & S_IXGRP) ? 'w' : '-')
+                 << ((filestat.st_mode & S_IROTH) ? 'w' : '-')
+                 << ((filestat.st_mode & S_IWOTH) ? 'w' : '-')
+                 << ((filestat.st_mode & S_IXOTH) ? 'w' : '-');
+
+            cout << ' ';
+
+            time_t time = filestat.st_ctime;
+            struct tm* timeptr = localtime(&time);
+            if (timeptr == NULL)
+               perror("failed to get ctime");
+            char timestr[100];
+            strftime(timestr,sizeof(timestr),"%b %e %H:%M", timeptr);
+            cout << timestr;
+
+            cout << ' ';
+
+
+            // print file name
+            cout << files.at(i);
+            cout << '\n';
+         }
+      }
    }
    // If -R, run through the list and call the printing function on every
    // DONT FORGET NOT TO RECURSE INTO . AND ..
