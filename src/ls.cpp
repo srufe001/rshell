@@ -6,9 +6,11 @@
 #include<stdio.h>
 #include<sys/types.h>
 #include<sys/stat.h>
+#include<dirent.h>
 #include<vector>
 #include<algorithm>
 #include<string>
+#include<cstring>
 
 using namespace std;
 
@@ -32,40 +34,93 @@ bool more_info = false;
 // function for outputting a single file in -l
 
 // prints info on each file specified by the strings contained in the vector
-// "files"
-void print_files(const vector<string>& files)
+// "files", also prints subdirectories recursively if -R flag is enabled
+void print_files(vector<string>& files)
 {
-   cout << "printing files: ";
-   for (unsigned i = 0; i < files.size(); ++i)
-   {
-      cout << files.at(i) << " ";
-   }
-   cout << endl;
-}
+   sort(files.begin(), files.end());
 
-// prints the contents of a directory only
-void print_contents(const string& dir)
-{
-   cout << "printing contents of " << dir << ": ";
-   /* Printing function */
-   // *** You will need columns whether -l is present or not
-   // If it is not a directory, print an error message.
-   // Otherwise, build a list containing the *stats* of the files it contains (remember to
-   //    include .files for the -a flag, and keep a running tally of sizes for -l)
-   // * if the stat struct does not contain the name, maybe only make a list of names
-   // Sort the list alphabetically
-   // If -l
-      // make it 1 file per line
-   // Else print names in columns
-   // Print a newline
+   unsigned term_width = 80;
+   // -l is not used
+   if (!more_info)
+   {
+      string output;
+      for (unsigned i = 0; i < files.size(); ++i)
+      {
+         if (output.size() == 0)
+         {
+            output += files.at(i);
+         } else if (output.size() + 2 + files.at(i).size() > term_width) {
+            cout << output << '\n';
+            output = files.at(i);
+         } else {
+            output += "  " + files.at(i);
+         }
+      }
+      cout << output << endl;
+   } else { // -l was used
+      // get stat objects for everything
+      vector<struct stat> stats;
+      for (unsigned i = 0; i < files.size(); ++i)
+      {
+         struct stat temp;
+         if (-1 == stat(files.at(i).c_str(), &temp))
+         {
+            perror("unable to open file");   // TODO make more descriptive
+            continue;
+         }
+         stats.push_back(temp);
+      }
+      /*
+      int total_links = 0;
+      int max_user_name_length = 0;
+      int max_group_name_length = 0;
+      int max_linked_files_length = 0;
+      int max_bit_size_length = 0;
+      int max_date+length = 0;
+      for (int i = 0; 
+      */
+   }
    // If -R, run through the list and call the printing function on every
+   // DONT FORGET NOT TO RECURSE INTO . AND ..
    // directory. TODO: make sure the order in which subdirectories are printed is
    // correct
    // Do not call on . and .., TODO what about other links?
-   cout << "\n";
+   // DONT FORGET EXTRA NEWLINES
 }
 
-// prints the contents of a directory
+// makes a vector of files and calls print_files on it
+void print_contents(const string& dir)
+{
+   DIR * dirstream; 
+   if (NULL == (dirstream = opendir(dir.c_str())))
+   {
+      perror("unable to open directory"); // TODO make more descriptive 
+      return;
+   }
+
+   // create a list of the files contained in this directory
+   vector<string> files;
+
+   struct dirent * dent;
+   while (NULL != (dent = readdir(dirstream)))
+   {
+      if (!show_hidden && strlen(dent->d_name) > 0 && dent->d_name[0] == '.')
+         continue;
+      files.push_back(string(dent->d_name));
+   }
+   // TODO you will have to check if errno got set an call perror
+   
+   if (-1 == closedir(dirstream))
+   {
+      perror("failed to close directory"); // TODO make more descriptive
+      return;
+   }
+
+   // print files. This also alphabetizes and does recursive printing if -R flag is used
+   print_files(files);
+}
+
+// prints the directory
 void print_directory(const string& dir)
 {
    cout << dir << ":\n";
@@ -129,7 +184,7 @@ int main(int argc, char** argv)
       if (-1 == stat(argv[i], &s))
       {
          perror("cannot access file"); // TODO more descriptive
-         continue;
+         continue;   // a file that doesn't exist shouldn't be used
       }
       if (s.st_mode & S_IFDIR)
       {
