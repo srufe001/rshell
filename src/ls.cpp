@@ -4,6 +4,8 @@
 //TODO block size appears to be doubled. idk what that's about
 //what is "do_ypcall" error?
 //Do I need characters like "/" or "*" and coloring for stuff like sockets
+//printing without -l seems to improperly use termwidth variable
+//Do i need to avoid recursing through directory loops?
 
 #include<iostream>
 #include<iomanip>
@@ -30,6 +32,8 @@ using namespace std;
 bool show_hidden = false;
 bool recursive = false;
 bool more_info = false;
+
+void print_directory(const string&);
 
 unsigned numDigits(int n)
 {
@@ -105,10 +109,9 @@ void print_files(vector<string>& files, string dirname = ".", bool printBlockSiz
             output = fileName(files.at(i), stats.at(i));
          } else {
             output += "  " + fileName(files.at(i), stats.at(i));
-
          }
       }
-      cout << output << endl;
+      if (output.size() > 0) cout << output << endl;
    } else {
       // calculate unknown column widths and number of hard links
       unsigned total_blocks = 0;
@@ -250,6 +253,17 @@ void print_files(vector<string>& files, string dirname = ".", bool printBlockSiz
       }
    }
    // If -R, run through the list and call the printing function on every
+   if (recursive)
+   {
+      for (unsigned i = 0; i < files.size(); ++i)
+      {
+         if (stat_exists.at(i) && (stats.at(i).st_mode & S_IFDIR) && files.at(i) != "." && files.at(i) != "..")
+         {
+            cout << '\n';
+            print_directory(dirname + '/' + files.at(i));
+         }
+      }
+   }
    // DONT FORGET NOT TO RECURSE INTO . AND ..
    // directory. TODO: make sure the order in which subdirectories are printed is
    // correct
