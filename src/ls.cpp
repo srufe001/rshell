@@ -6,6 +6,7 @@
 //Do I need characters like "/" or "*" and coloring for stuff like sockets
 //printing without -l seems to improperly use termwidth variable
 //Do i need to avoid recursing through directory loops?
+//the comment in the ls assignment README.md - May I change cp.cpp?
 
 #include<iostream>
 #include<iomanip>
