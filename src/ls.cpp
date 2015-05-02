@@ -16,10 +16,6 @@
 
 using namespace std;
 
-#define PRINTARR(arr, num_elements) { for (int i = 0; i < num_elements; ++i) \
-                                         cout << arr[i] << " "; \
-                                      cout << endl; } \
-
 bool show_hidden = false;
 bool recursive = false;
 bool more_info = false;
@@ -162,12 +158,12 @@ void print_files(vector<string>& files, string dirname = ".", bool printBlockSiz
             if (j >= colwidths.size()) cout << "fail 1" << endl;
             if (i + rows * j >= files.size()) cout << "fail 2" << endl;
 
-            cout << setw(colwidths.at(j)) << left << files.at(i + rows * j)
+            cout << setw(colwidths.at(j)) << left << fileName(files.at(i + rows * j), stats.at(i + rows * j))
                  << col_sep;
          }
          if (j >= colwidths.size()) cout << "fail 3" << endl;
          if (i + rows * j >= files.size()) cout << "fail 4" << endl;
-         cout << setw(colwidths.at(j)) << left << files.at(i + rows * j) <<
+         cout << setw(colwidths.at(j)) << left << fileName(files.at(i + rows * j), stats.at(i + rows * j)) <<
          '\n';
       }
    } else {
