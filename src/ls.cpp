@@ -57,7 +57,7 @@ string fileName(string& file, struct stat& s)
    } else if (s.st_mode & S_IFSOCK) {
       filename += file;
    }
-   return filename + "\x1b[0m";
+   return filename;// + "\x1b[0m";
 }
 
 void print_files(vector<string>& files, string dirname = ".", bool printBlockSize = true)

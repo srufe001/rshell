@@ -1,0 +1,358 @@
+Script started on Fri 01 May 2015 10:54:38 PM PDT
+~
+srufe001@hammer $ cd ~cs[K[K/cs100/rshell/bin
+~/cs100/rshell/bin
+srufe001@hammer $ echo "cs100 rocks" > normalfile
+~/cs100/rshell/bin
+srufe001@hammer $ mkdir emptydir
+~/cs100/rshell/bin
+srufe001@hammer $ mkdir dir
+~/cs100/rshell/bin
+srufe001@hammer $ dir[K[K[Ktouch dir/file
+~/cs100/rshell/bin
+srufe001@hammer $ mkdir dir/.subdir
+~/cs100/rshell/bin
+srufe001@hammer $ touch dir/.subdir/subfile
+~/cs100/rshell/bin
+srufe001@hammer $ touch .file
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls
+[32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls # j[K[K[Karg1 # just one argument[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kcp # just one argument
+[32mcp[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -a # just one flag
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m.file[0m  [32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -a normalfile # one flag, one argument
+normalfile[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -a -R #multiple flags
+.:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m.file[0m  [32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+
+./dir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m[34m.subdir[0m/[0m  file[0m
+
+./dir/.subdir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  subfile[0m
+
+./emptydir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -a -R[K[K[K[KR -a # multiple flags, different order
+.:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m.file[0m  [32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+
+./dir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m[34m.subdir[0m/[0m  file[0m
+
+./dir/.subdir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  subfile[0m
+
+./emptydir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -aRl # multiple flags as one argument
+.:
+total: 160
+drwx------ 4 srufe001 csmajs  4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 6 srufe001 csmajs  4096 May  1 21:50 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs     0 May  1 22:49 [47m.file[0m
+-rwx------ 1 srufe001 csmajs 16097 Apr 29 17:13 [32mcp[0m*[0m
+drwx------ 3 srufe001 csmajs  4096 May  1 22:49 [34mdir[0m/[0m
+drwx------ 2 srufe001 csmajs  4096 May  1 22:48 [34memptydir[0m/[0m
+-rwx------ 1 srufe001 csmajs 87327 May  1 22:46 [32mls[0m*[0m
+-rw------- 1 srufe001 csmajs    12 May  1 22:48 normalfile[0m
+-rwx------ 1 srufe001 csmajs 33192 May  1 22:46 [32mrshell[0m*[0m
+
+./dir:
+total: 12
+drwx------ 3 srufe001 csmajs 4096 May  1 22:49 [47m[34m.[0m/[0m
+drwx------ 4 srufe001 csmajs 4096 May  1 22:48 [47m[34m..[0m/[0m
+drwx------ 2 srufe001 csmajs 4096 May  1 22:49 [47m[34m.subdir[0m/[0m
+-rw------- 1 srufe001 csmajs    0 May  1 22:49 file[0m
+
+./dir/.subdir:
+total: 8
+drwx------ 2 srufe001 csmajs 4096 May  1 22:49 [47m[34m.[0m/[0m
+drwx------ 3 srufe001 csmajs 4096 May  1 22:49 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs    0 May  1 22:49 subfile[0m
+
+./emptydir:
+total: 8
+drwx------ 2 srufe001 csmajs 4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 4 srufe001 csmajs 4096 May  1 22:48 [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -Rla # multiple flags as one argument, different order
+.:
+total: 160
+drwx------ 4 srufe001 csmajs  4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 6 srufe001 csmajs  4096 May  1 21:50 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs     0 May  1 22:49 [47m.file[0m
+-rwx------ 1 srufe001 csmajs 16097 Apr 29 17:13 [32mcp[0m*[0m
+drwx------ 3 srufe001 csmajs  4096 May  1 22:49 [34mdir[0m/[0m
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+drwx------ 2 srufe001 csmajs  4096 May  1 22:48 [34memptydir[0m/[0m
+-rwx------ 1 srufe001 csmajs 87327 May  1 22:46 [32mls[0m*[0m
+-rw------- 1 srufe001 csmajs    12 May  1 22:48 normalfile[0m
+-rwx------ 1 srufe001 csmajs 33192 May  1 22:46 [32mrshell[0m*[0m
+
+./dir:
+total: 12
+drwx------ 3 srufe001 csmajs 4096 May  1 22:49 [47m[34m.[0m/[0m
+drwx------ 4 srufe001 csmajs 4096 May  1 22:48 [47m[34m..[0m/[0m
+drwx------ 2 srufe001 csmajs 4096 May  1 22:49 [47m[34m.subdir[0m/[0m
+-rw------- 1 srufe001 csmajs    0 May  1 22:49 file[0m
+
+./dir/.subdir:
+total: 8
+drwx------ 2 srufe001 csmajs 4096 May  1 22:49 [47m[34m.[0m/[0m
+drwx------ 3 srufe001 csmajs 4096 May  1 22:49 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs    0 May  1 22:49 subfile[0m
+
+./emptydir:
+total: 8
+drwx------ 2 srufe001 csmajs 4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 4 srufe001 csmajs 4096 May  1 22:48 [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -lR -a # multiple flags where at least two are in one argument
+.:
+total: 160
+drwx------ 4 srufe001 csmajs  4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 6 srufe001 csmajs  4096 May  1 21:50 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs     0 May  1 22:49 [47m.file[0m
+-rwx------ 1 srufe001 csmajs 16097 Apr 29 17:13 [32mcp[0m*[0m
+drwx------ 3 srufe001 csmajs  4096 May  1 22:49 [34mdir[0m/[0m
+drwx------ 2 srufe001 csmajs  4096 May  1 22:48 [34memptydir[0m/[0m
+-rwx------ 1 srufe001 csmajs 87327 May  1 22:46 [32mls[0m*[0m
+-rw------- 1 srufe001 csmajs    12 May  1 22:48 normalfile[0m
+-rwx------ 1 srufe001 csmajs 33192 May  1 22:46 [32mrshell[0m*[0m
+
+./dir:
+total: 12
+drwx------ 3 srufe001 csmajs 4096 May  1 22:49 [47m[34m.[0m/[0m
+drwx------ 4 srufe001 csmajs 4096 May  1 22:48 [47m[34m..[0m/[0m
+drwx------ 2 srufe001 csmajs 4096 May  1 22:49 [47m[34m.subdir[0m/[0m
+-rw------- 1 srufe001 csmajs    0 May  1 22:49 file[0m
+
+./dir/.subdir:
+total: 8
+drwx------ 2 srufe001 csmajs 4096 May  1 22:49 [47m[34m.[0m/[0m
+drwx------ 3 srufe001 csmajs 4096 May  1 22:49 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs    0 May  1 22:49 subfile[0m
+
+./emptydir:
+total: 8
+drwx------ 2 srufe001 csmajs 4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 4 srufe001 csmajs 4096 May  1 22:48 [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -a normalfile -l # argument betwe[K[K[K[K[K[K[K[K[K[K[K[K[K[Kfile argument between flags
+-rw------- 1 srufe001 csmajs 12 May  1 22:48 normalfile[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls emptydir -a ls # flag between arguments
+[32mls[0m*[0m
+
+emptydir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls normalfile rshell empty[K[K[K[K[K[K[K[K[K[K[K[K[K emptydir rshell dir # test when some file arguments are file and some are directories
+normalfile[0m  [32mrshell[0m*[0m
+
+dir:
+file[0m
+
+emptydir:
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls dir/ # test directory names with / at the end
+file[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls . # test .
+[32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls .. # test ..
+LICENSE[0m  Makefile[0m  README.md[0m  [34mbin[0m/[0m  [34msrc[0m/[0m  [34mtests[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls .file # test a hidden file
+[47m.file[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls ~//////Documents # test ~ and multiple /. this should p[Kprint the contents of ~/Documents
+cannot access file /home/csmajs/srufe001//////Documents: No such file or directory
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls dir/s[K.sub[K[K[K[K///.subdir # oops lets just try multiple /
+subfile[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -l # show that -l works properly
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get groupname: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get groupname: Success
+total: 152
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+ÿÿÀ: Success
+-rwx------ 1 srufe001  16097 Apr 29 17:13 [32mcp[0m*[0m
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+Segmentation fault
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -l # show that -l works properly [K[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C, [K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kthi[K[K[Klets try that again
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get groupname: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get groupname: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+total: 152
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+-rwx------ 1 srufe001 csmajs 16097 Apr 29 17:13 [32mcp[0m*[0m
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+Segmentation fault
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -l # lets try that again
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get username: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+total: 152
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+Segmentation fault
+~/cs100/rshell/bin
+srufe001@hammer $ # well, it was working before, that'll have to be enough p[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[Kwell, it was working earlier, hopefully that is enough proof
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -a # show that -a works properly
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m.file[0m  [32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -R s[K# show that -R works properly and does not recurse through. [K[K . and ..
+.:
+[32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+
+./dir:
+file[0m
+
+./emptydir:
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -Ra # show that hidden directories are recursed into only when -a is used
+.:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m.file[0m  [32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+
+./dir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  [47m[34m.subdir[0m/[0m  file[0m
+
+./dir/.subdir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m  subfile[0m
+
+./emptydir:
+[47m[34m.[0m/[0m  [47m[34m..[0m/[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls # show that coloring works properly, as well as * and / at the end of executables and directories, respecively[K[K[K[K[Ktively
+[32mcp[0m*[0m  [34mdir[0m/[0m  [34memptydir[0m/[0m  [32mls[0m*[0m  normalfile[0m  [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -l # show that coloring works properly with -l
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get groupname: Success
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+unable to get groupname: Success
+total: 152
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+Segmentation fault
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -la #tr[K[K t[K[K try again, it worked with a before, a[Kmaybe it'll work this time[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K[K-a before, b[Kmaybe it'll work this time?
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+total: 160
+drwx------ 4 srufe001 csmajs  4096 May  1 22:48 [47m[34m.[0m/[0m
+drwx------ 6 srufe001 csmajs  4096 May  1 21:50 [47m[34m..[0m/[0m
+-rw------- 1 srufe001 csmajs     0 May  1 22:49 [47m.file[0m
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+-rwx------ 1 srufe001 csmajs 16097 Apr 29 17:13 [32mcp[0m*[0m
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+drwx------ 3 srufe001 csmajs  4096 May  1 22:49 [34mdir[0m/[0m
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+drwx------ 2 srufe001 csmajs  4096 May  1 22:48 [34memptydir[0m/[0m
+-rwx------ 1 srufe001 csmajs 87327 May  1 22:46 [32mls[0m*[0m
+-rw------- 1 srufe001 csmajs    12 May  1 22:48 normalfile[0m
+-rwx------ 1 srufe001 csmajs 33192 May  1 22:46 [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ mkdir largedir
+~/cs100/rshell/bin
+srufe001@hammer $ for i in {a..z; do touch largedir/$i$i$i; done;
+~/cs100/rshell/bin
+srufe001@hammer $ for i in [K[K[K[K[K[K[K[K[Kfor i in {a..z}; do touch largedir/$i$i$i; done;
+~/cs100/rshell/bin
+srufe001@hammer $ for i in {A..Z}; do touch largedir/$i$i$i$i$i; done
+~/cs100/rshell/bin
+srufe001@hammer $ for i in {1..9}; do touch largedir/$i; done;
+~/cs100/rshell/bin
+srufe001@hammer $ for i in {A..Z}; do touch largedir/$i$i$i$i$i; done;
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls largedir # show that column output can handle many files, and who [K[K[K[Kshow alphabetization. I use the builtin[K[K-in c++ sort
+1[0m  8[0m  FFFFF[0m  MMMMM[0m  TTTTT[0m  aaa[0m  hhh[0m  ooo[0m  vvv[0m        
+2[0m  9[0m  GGGGG[0m  NNNNN[0m  UUUUU[0m  bbb[0m  iii[0m  ppp[0m  www[0m        
+3[0m  AAAAA[0m  HHHHH[0m  OOOOO[0m  VVVVV[0m  ccc[0m  jjj[0m  qqq[0m  xxx[0m        
+4[0m  BBBBB[0m  IIIII[0m  PPPPP[0m  WWWWW[0m  ddd[0m  kkk[0m  rrr[0m  yyy[0m        
+5[0m  CCCCC[0m  JJJJJ[0m  QQQQQ[0m  XXXXX[0m  eee[0m  lll[0m  sss[0m  zzz[0m        
+6[0m  DDDDD[0m  KKKKK[0m  RRRRR[0m  YYYYY[0m  fff[0m  mmm[0m  ttt[0m  {a..z{a..z{a..z[0m
+7[0m  EEEEE[0m  LLLLL[0m  SSSSS[0m  ZZZZZ[0m  ggg[0m  nnn[0m  uuu[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls doesnotexist # show error when file does not exist
+cannot access file doesnotexist: No such file or directory
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls normalfile/ # file does not exist
+cannot access file normalfile/: Not a directory
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls -l # try again
+do_ypcall: clnt_call: RPC: Unable to send; errno = Operation not permitted
+total: 156
+-rwx------ 1 srufe001 csmajs 16097 Apr 29 17:13 [32mcp[0m*[0m
+drwx------ 3 srufe001 csmajs  4096 May  1 22:49 [34mdir[0m/[0m
+drwx------ 2 srufe001 csmajs  4096 May  1 22:48 [34memptydir[0m/[0m
+drwx------ 2 srufe001 csmajs  4096 May  1 23:05 [34mlargedir[0m/[0m
+-rwx------ 1 srufe001 csmajs 87327 May  1 22:46 [32mls[0m*[0m
+-rw------- 1 srufe001 csmajs    12 May  1 22:48 normalfile[0m
+-rwx------ 1 srufe001 csmajs 33192 May  1 22:46 [32mrshell[0m*[0m
+~/cs100/rshell/bin
+srufe001@hammer $ ./ls largedir #try to show how column handles ha[K[Kmany files of m[Kvariable size again
+1  7      DDDDD  JJJJJ  PPPPP  VVVVV  bbb  hhh  nnn  ttt  zzz
+2  8      EEEEE  KKKKK  QQQQQ  WWWWW  ccc  iii  ooo  uuu
+3  9      FFFFF  LLLLL  RRRRR  XXXXX  ddd  jjj  ppp  vvv
+4  AAAAA  GGGGG  MMMMM  SSSSS  YYYYY  eee  kkk  qqq  www
+5  BBBBB  HHHHH  NNNNN  TTTTT  ZZZZZ  fff  lll  rrr  xxx
+6  CCCCC  IIIII  OOOOO  UUUUU  aaa    ggg  mmm  sss  yyy
+~/cs100/rshell/bin
+srufe001@hammer $ exit
+exit
+
+Script done on Fri 01 May 2015 11:25:57 PM PDT
