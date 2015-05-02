@@ -30,6 +30,8 @@ touch .file
 ./ls dir/ # test directory names with / at the end
 ./ls .  # test .
 ./ls .. # test ..
+./ls .file # test a hidden file
+./ls ~//////Documents # test ~ and multiple /. this should open ~/Documents
 
 ##### TEST flags
 ./ls -l # show that -l works properly
@@ -53,11 +55,4 @@ for i in {1..9}; do touch largedir/$i; done; # at this point there should be 61 
 ./ls blorgobloop # file does not exist
 ./ls normalfile/ # file does not exist
 
-#test ~
-#test file names like ~//////Documents
-#alphabetization and proper order
-# . and .., but also check .files
-# show that it does not recurse through . and ..
-#test so many arguments that it spills onto the next line
-#directories with / at the end and without / at the end
-cd -
+exit
