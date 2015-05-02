@@ -419,7 +419,9 @@ int main(int argc, char** argv)
       struct stat s;
       if (-1 == stat(argv[i], &s))
       {
-         perror("cannot access file"); // TODO more descriptive
+         string errorMessage = "cannot access file ";
+         errorMessage += argv[i];
+         perror(errorMessage.c_str()); // TODO more descriptive
          continue;   // a file that doesn't exist shouldn't be used
       }
       if (s.st_mode & S_IFDIR)
