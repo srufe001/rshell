@@ -155,14 +155,9 @@ void print_files(vector<string>& files, string dirname = ".", bool printBlockSiz
          unsigned num_to_print = (i >= num_full_rows) ? cols - 1 : cols;
          for (j = 0; j < num_to_print - 1; ++j) //min(cols, static_cast<unsigned>(files.size() - cols * i)) - 1; ++j)
          {
-            if (j >= colwidths.size()) cout << "fail 1" << endl;
-            if (i + rows * j >= files.size()) cout << "fail 2" << endl;
-
             cout << setw(colwidths.at(j)) << left << fileName(files.at(i + rows * j), stats.at(i + rows * j))
                  << col_sep;
          }
-         if (j >= colwidths.size()) cout << "fail 3" << endl;
-         if (i + rows * j >= files.size()) cout << "fail 4" << endl;
          cout << setw(colwidths.at(j)) << left << fileName(files.at(i + rows * j), stats.at(i + rows * j)) <<
          '\n';
       }
