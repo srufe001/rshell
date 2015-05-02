@@ -1,13 +1,3 @@
-//TODO: look up how ls prints in columns
-//Do I have to delete stuff like the stat object
-//TODO IMPORTANT: do I need case-insensitive sorting
-//TODO block size appears to be doubled. idk what that's about
-//what is "do_ypcall" error?
-//Do I need characters like "/" or "*" and coloring for stuff like sockets
-//printing without -l seems to improperly use termwidth variable
-//Do i need to avoid recursing through directory loops?
-//the comment in the ls assignment README.md - May I change cp.cpp?
-
 #include<iostream>
 #include<iomanip>
 #include<unistd.h>
@@ -76,6 +66,7 @@ string fileName(string& file, struct stat& s)
 
 void print_files(vector<string>& files, string dirname = ".", bool printBlockSize = true)
 {
+   if (files.size() == 0) return;
    sort(files.begin(), files.end());
 
    // get stat objects for everything
@@ -99,20 +90,86 @@ void print_files(vector<string>& files, string dirname = ".", bool printBlockSiz
    unsigned term_width = 80;
    if (!more_info)
    {
-      string output;
-      for (unsigned i = 0; i < files.size(); ++i)
+      char col_sep[] = "  ";
+      unsigned col_sep_length = sizeof(col_sep) / sizeof(*col_sep);
+      unsigned cols = 2;
+      unsigned rows;
+      // calculate rows, cols
+      while (true)
       {
-         if (output.size() == 0)
+         rows = (files.size() + cols - 1) / cols;  // round up
+         // check if cols is too high
+         if (cols > files.size())
          {
-            output += fileName(files.at(i), stats.at(i));
-         } else if (output.size() + 2 + files.at(i).size() > term_width) {
-            cout << output << '\n';
-            output = fileName(files.at(i), stats.at(i));
-         } else {
-            output += "  " + fileName(files.at(i), stats.at(i));
+            --cols;
+            rows = (files.size() + cols - 1) / cols; // round up
+            break;
          }
+         // calculate total length of output with this number of cols
+         unsigned row_length = 0;
+         //check each column
+         for (unsigned i = 0; i < cols; ++i)
+         {
+            unsigned longest_filename = 0;
+            for (unsigned j = 0; j < rows; ++j)
+            {
+               unsigned index = i * rows + j;
+               if (index >= files.size())
+                  break;
+               if (files.at(index).size() > longest_filename)
+                  longest_filename = files.at(index).size();
+            }
+            row_length += longest_filename + col_sep_length;
+         }
+         row_length -= col_sep_length;  // make up for the extra spaces added
+
+         if (row_length > term_width)
+         {
+            --cols;
+            rows = (files.size() + cols - 1) / cols;  // round up
+            break;
+         }
+         ++cols;
       }
-      if (output.size() > 0) cout << output << endl;
+      // remove unnecessary columns
+      cols = (files.size() + rows - 1) / rows; // round up
+      // calculate column widths
+      vector<unsigned> colwidths;
+      for (unsigned i = 0; i < cols; ++i)
+      {
+         unsigned longest_filename = 0;
+         for (unsigned j = 0; j < rows; ++j)
+         {
+            unsigned index = i * rows + j;
+            if (index >= files.size())
+               break;
+            if (files.at(index).size() > longest_filename)
+               longest_filename = files.at(index).size();
+         }
+         colwidths.push_back(longest_filename);
+      }
+
+      //print each row
+      unsigned num_full_rows = rows - (rows * cols - files.size());  // number of rows that will have cols items
+      for (unsigned i = 0; i < rows; ++i)
+      {
+         // print each column of the row
+         unsigned j;
+         // decide how many cols to print in this row
+         unsigned num_to_print = (i >= num_full_rows) ? cols - 1 : cols;
+         for (j = 0; j < num_to_print - 1; ++j) //min(cols, static_cast<unsigned>(files.size() - cols * i)) - 1; ++j)
+         {
+            if (j >= colwidths.size()) cout << "fail 1" << endl;
+            if (i + rows * j >= files.size()) cout << "fail 2" << endl;
+
+            cout << setw(colwidths.at(j)) << left << files.at(i + rows * j)
+                 << col_sep;
+         }
+         if (j >= colwidths.size()) cout << "fail 3" << endl;
+         if (i + rows * j >= files.size()) cout << "fail 4" << endl;
+         cout << setw(colwidths.at(j)) << left << files.at(i + rows * j) <<
+         '\n';
+      }
    } else {
       // calculate unknown column widths and number of hard links
       unsigned total_blocks = 0;
