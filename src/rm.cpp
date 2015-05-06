@@ -4,6 +4,7 @@
 #include<sys/types.h>
 #include<sys/stat.h>
 #include<dirent.h>
+#include<cstring>
 
 using namespace std;
 
@@ -14,7 +15,7 @@ void rem(const char* path)
    struct stat s;
    if (-1 == stat(path, &s))
    {
-      perror("stat");
+      perror(path);
       return;
    }
    // check if its a directory
@@ -31,16 +32,13 @@ void rem(const char* path)
          struct dirent * dent;
          while (NULL != (dent = readdir(dirstream)))
          {
-            if (!(dent->d_name == "." || dent->d_name == ".."))
+            if (!(!strcmp(dent->d_name, ".") || !strcmp(dent->d_name, "..")))
             {
-               /*
                string dirname;
                dirname += path;
                dirname += "/";
                dirname += dent->d_name;
                rem(dirname.c_str());
-               */
-               cout << "removed " << dent->d_name << endl;
             }
          }
          closedir(dirstream);
