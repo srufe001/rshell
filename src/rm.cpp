@@ -31,12 +31,17 @@ void rem(const char* path)
          struct dirent * dent;
          while (NULL != (dent = readdir(dirstream)))
          {
-            string dirname;
-            dirname += path;
-            dirname += "/";
-            dirname += dent->d_name;
-            rem(dirname.c_str());
-            cout << "removed " << dent->d_name << endl;
+            if (!(dent->d_name == "." || dent->d_name == ".."))
+            {
+               /*
+               string dirname;
+               dirname += path;
+               dirname += "/";
+               dirname += dent->d_name;
+               rem(dirname.c_str());
+               */
+               cout << "removed " << dent->d_name << endl;
+            }
          }
          closedir(dirstream);
          if (-1 == rmdir(path))

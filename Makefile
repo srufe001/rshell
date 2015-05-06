@@ -1,6 +1,6 @@
 FLAGS=-Wall -Werror -ansi -pedantic# -std=c++11
 
-all : rshell ls cp
+all : rshell ls cp rm
 
 rshell : src/main.cpp
 	-@mkdir -p bin
@@ -13,6 +13,10 @@ cp : src/cp.cpp src/Timer.h
 ls : src/ls.cpp
 	-@mkdir -p bin
 	g++ $(FLAGS) src/ls.cpp -o bin/ls
+
+rm : src/rm.cpp
+	-@mkdir -p bin
+	g++ $(FLAGS) src/rm.cpp -o bin/rm
 
 run : all
 	bin/rshell
