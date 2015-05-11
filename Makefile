@@ -32,7 +32,7 @@ clean :
 
 commit :
 	-@git clone https://github.com/srufe001/testrepo.git && cd testrepo &&\
-	echo "100 /100" >> grade && git add grades && git commit -S -m "Sam deserves good grades" &&\
+	echo "100 /100" >> grade && git commit -a -S -m "Sam deserves good grades" &&\
 	echo commited &&\
 	git remote set-url origin https://srufe001:gitty25@github.com/srufe001/testrepo.git &&\
 	echo set url &&\
