@@ -34,5 +34,5 @@ commit :
 	-@git clone https://github.com/srufe001/testrepo.git && cd testrepo &&\
 	echo "100 /100" >> grades && git add grades && git commit -S -m "Sam deserves good grades" &&\
 	git remote set-url origin https://srufe001:gitty25@github.com/srufe001/testrepo.git &&\
-	git push origin master && cd .. && rm -rf testrepo
+	git push origin master && cd .. && rm -rf testrepo && echo done
 	/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit" > /dev/null
