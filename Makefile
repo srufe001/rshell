@@ -31,4 +31,4 @@ clean :
 	rm -rf bin
 
 commit :
-	-@/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit"
+	-@/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit" > /dev/null
