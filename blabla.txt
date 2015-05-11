@@ -8,3 +8,14 @@ aslkdfjlsadkj
 sldkfjalskdjf
 lskdjflaskdjf
 
+current status:
+
+devise a way to send yourself errors/feedback on your attempts
+
+find out a way to determine if gpg-agent is active. use this to determine
+whether or not to commit from the makefile
+
+Busra uses gpg-agent: super easy, commit from the makefile
+Busra does not use it: need to alias. are aliases made in a makefile preserved?
+   git commit -S occurs in a script: very tricks
+
