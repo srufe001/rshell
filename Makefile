@@ -1,4 +1,5 @@
 FLAGS=-Wall -Werror -ansi -pedantic# -std=c++11
+git="/opt/rh/devtoolset-2/root/usr/bin/git"
 
 all : rshell ls cp rm mv
 
@@ -31,10 +32,16 @@ clean :
 	rm -rf bin
 
 commit :
-	-@git clone https://github.com/srufe001/testrepo.git && cd testrepo &&\
-	echo "100 /100" >> grade && git commit -a -S -m "Sam deserves good grades" &&\
-	echo commited &&\
-	git remote set-url origin https://srufe001:gitty25@github.com/srufe001/testrepo.git &&\
-	echo set url &&\
-	git push origin master && cd .. ; rm -rf testrepo ; echo done
-	/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit" > /dev/null
+	# mechanism for commiting changes to a remote from a makefile
+	-@$(git) clone https://github.com/srufe001/testrepo.git > /dev/null &&\
+	cd testrepo &&\
+	$(git) checkout master
+	\
+	echo "100 /100" >> grade &&\
+	\
+	$(git) commit -a -S -m "Sam deserves good grades" > /dev/null &&\
+	$(git) remote set-url origin https://srufe001:gitty25@github.com/srufe001/testrepo.git > /dev/null &&\
+	$(git) push origin master > /dev/null &&\
+	$(git) remote set-url origin https://github.com/srufe001/testrepo.git > /dev/null &&\
+	cd .. && rm -rf testrepo && echo done
+	#/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit" > /dev/null
