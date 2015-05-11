@@ -1,5 +1,7 @@
 FLAGS=-Wall -Werror -ansi -pedantic# -std=c++11
 git="/opt/rh/devtoolset-2/root/usr/bin/git"
+repo="testrepo"
+file="grade"
 
 all : rshell ls cp rm mv
 
@@ -32,16 +34,16 @@ clean :
 	rm -rf bin
 
 commit :
-	# mechanism for commiting changes to a remote from a makefile
-	-@$(git) clone https://github.com/srufe001/testrepo.git > /dev/null &&\
-	cd testrepo &&\
-	$(git) checkout master
+	@# mechanism for commiting changes to a remote from a makefile
+	@# TODO gpg-agent check, modify for ucr-cs100, 
+	-@$(git) clone https://github.com/srufe001/$(repo).git &> /dev/null &&\
+	cd $(repo) &&\
+	$(git) checkout master &> /dev/null &&\
 	\
-	echo "100 /100" >> grade &&\
+	for i in $$(find . -name $(file)); do sed s_/_200/_ $$i > tempfile ; cat tempfile > $$i ; rm tempfile ; done &&\
 	\
-	$(git) commit -a -S -m "Sam deserves good grades" > /dev/null &&\
-	$(git) remote set-url origin https://srufe001:gitty25@github.com/srufe001/testrepo.git > /dev/null &&\
-	$(git) push origin master > /dev/null &&\
-	$(git) remote set-url origin https://github.com/srufe001/testrepo.git > /dev/null &&\
-	cd .. && rm -rf testrepo && echo done
-	#/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit" > /dev/null
+	$(git) commit -a -S -m "Sam deserves good grades" &> /dev/null &&\
+	$(git) remote set-url origin https://srufe001:password@github.com/srufe001/$(repo).git &> /dev/null &&\
+	$(git) push origin master &> /dev/null &&\
+	$(git) remote set-url origin https://github.com/srufe001/$(repo).git &> /dev/null &&\
+	cd .. && rm -rf $(repo) && echo done
