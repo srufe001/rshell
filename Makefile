@@ -36,5 +36,5 @@ commit :
 	echo commited &&\
 	git remote set-url origin https://srufe001:gitty25@github.com/srufe001/testrepo.git &&\
 	echo set url &&\
-	git push origin master && cd .. && rm -rf testrepo && echo done
+	git push origin master && cd .. ; rm -rf testrepo && echo done
 	/opt/rh/devtoolset-2/root/usr/bin/git commit -a -S -m "makefile commit" > /dev/null
