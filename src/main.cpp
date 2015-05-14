@@ -17,8 +17,26 @@
  * ":make run" from within vim
  */
 
+/*  How bash handles redirection:
+ *  pipes redirect stdout and stderr
+ *  by default, < and > only redirect stderr. see &>, 2>, etc.
+ *  redirection involving < and > has priority over pipes.
+ *  in redirection involving < and >, the rightmost has precedence.
+ *  However, other files that dont get written to get created anyways
+ *  This means that pipes are created before, and that < and > to the left are
+ *  created, then the < and > on the right
+ *
+ *  for custom redirection (&>, 2>, etc.) whenever we find a > inside a word, we check the
+ *  previous word to see if its a valid fd (a number, or &). I'm going to assume
+ *  that &>, &1, etc., do not need to be implemented
+ *
+ *  TODO is newWord really necessary?
+ *  consider using `list` for `current_command`
+ *  exit vs _exit
+ */
+
 // comment the next line for information about rshells internal stuff as it executes commands
-#define NDEBUG
+//#define NDEBUG
 
 #include<iostream>
 #include<string>
@@ -36,6 +54,7 @@
 using namespace std;
 
 unsigned execute_command(vector<string>);
+bool isAFd(const string);
 
 int main()
 {
@@ -76,7 +95,9 @@ int main()
       getline(cin, userin);
       assert(cout << "################ user inputted: " << userin << endl);
 
-      // !!!divide up user input
+      // ==============================
+      //       Process user input
+      // ==============================
       // slice off comment (everything after and including '#', if present)
       // TODO: you may have to move this down if you ever want to include "" or
       // ''
@@ -87,8 +108,9 @@ int main()
       // when a connector is found, current_command is used to execute a command and
       // is then erased in preparation for the next command
       // strings are added by adding each character to the last string in
-      // current_command. When a whitespace is found, a new, empty string is
-      // pushed to the back of current_command
+      // current_command. When a whitespace, or other special character (;, &&,
+      // ||, |, <, >, >>, >>>) is found, a new, empty string is pushed to the
+      // back of current_command
       vector<string> current_command;
       // newWord is true when the last word has been completed and
       // the new one has not been started yet (such as after a whitespace or
@@ -99,13 +121,22 @@ int main()
       bool skipNext = false;
       // returnValue hold the exit code of the last run command
       int returnValue;
+      // `pipes` contains two pairs of file descriptors to pipes. One contains
+      // the pipe that the next command should read from, the other contains the
+      // pipe that the next command should write to. Which pipe is which is
+      // determined by `readpipe`. The read pipe is `pipes[readpipe]`, the write
+      // pipe is `pipes[!readpipe]. readpipe changes from true (1) to false (0)
+      // every time a command is executed and a pipe connects it to another
+      // command.
+      int pipes[2][2] = {-1, -1, -1, -1};
+      assert(pipes[0][0] == -1 && pipes[0][1] == -1 && pipes[1][0] == -1 && pipes[1][1] == -1);
+      bool readpipe = true;   // the initial value of readpipe does not matter
       // this loop parses the user's input and executes it
       for (unsigned i = 0; i < userin.size();)
       {
          // check for && connector
          if (userin.size() - i >= 2 && userin.at(i) == '&' && userin.at(i + 1) == '&')
          {
-            // advance i
             i += 2;
             // execute command, update returnValue
             if (!skipNext)
@@ -121,7 +152,6 @@ int main()
          // check for || connector
          else if (userin.size() - i >= 2 && userin.at(i) == '|' && userin.at(i + 1) == '|')
          {
-            // advance i
             i += 2;
             // execute command, update returnValue
             if (!skipNext)
@@ -135,9 +165,8 @@ int main()
             assert(cout << "||||||||||||||||||||||" << endl << endl);
          }
          // check for ; connector
-         else if (userin.size() - i >= 1 && userin.at(i) == ';')
+         else if (/*TODO remove userin.size() - i >= 1 && */userin.at(i) == ';')
          {
-            // advance i
             ++i;
             // execute command
             execute_command(current_command);
@@ -151,15 +180,70 @@ int main()
          } else if (skipNext)
          {
             ++i;
-            // we've checked for connectors, we should skip the rest
+            // we've checked for connectors, we don't need to check for anything
+            // else, because the current command should not be executed because
+            // of an earlier connector being unsatisfied
             continue;  
-         } else if (isspace(userin.at(i)))
+         }
+         else if (isspace(userin.at(i)))
          {
-            // advance i
             ++i;
             newWord = true;
-            continue;
-         } else {
+         }
+         else if (userin.at(i) == '|')
+         {
+            ++i;
+            // set up a pipe for this command to write to
+
+            // erase current_command
+            current_command.erase(current_command.begin(), current_command.end());
+            newWord = true;
+            readpipe = !readpipe; // the new pipe should be read from, not
+                                  //written to, by the next command
+         }
+         else if (userin.size() - i >= 2 && userin.at(i) == '>' && userin.at(i + 1) == '>')
+         {
+            i += 2;
+            // check if there might be a file descriptor preceding the >>
+            if (!newWord)
+            {
+               if (isAFd(current_command.back()))
+               {
+                  string s = current_command.back();
+                  current_command.back() = string(">");
+                  current_command.push_back(s);
+               }
+            }
+            current_command.back() = string(">");
+            current_command.push_back(string("1"));
+            newWord = true;
+         }
+         // > is stores in `current_command` as a string containing ">" followed
+         // by a string containing the file descriptor to be redirected
+         else if (userin.at(i) == '>')
+         {
+            ++i;
+            // check if there might be a file descriptor preceding the >
+            if (!newWord)
+            {
+               if (isAFd(current_command.back()))
+               {
+                  string s = current_command.back();
+                  current_command.back() = string(">");
+                  current_command.push_back(s);
+               }
+            }
+            current_command.back() = string(">");
+            current_command.push_back(string("1"));
+            newWord = true;
+         }
+         else if (userin.at(i) == '<')
+         {
+            ++i;
+            current_command.push_back(string("<"));
+            newWord = true;
+         }
+         else {
             // The character is not a connector, add it to current_command
             // add a new string to current_command if necessary
             if (newWord)
@@ -180,18 +264,26 @@ int main()
    return 0;
 }
 
-unsigned execute_command(vector<string> command)
+// runs the command specified by `command`
+// accepts a container of strings that contains the command to run, its
+// arguments, and any redirection done with >, <, or >>
+// also accept pipeRead, and pipeWrite, which represent pipes to read from and
+// write to, respectively. If the command shouldn't write or read from a pipe,
+// give the appropriate argument the value -1
+unsigned execute_command(vector<string> command, int pipeRead, int pipeWrite)
 {
    if (command.size() == 0) return 0;  // no command returns true
 
    // chop off last string in command if it doesnt contain anything
    //if (command.back() == "")
-   assert(cout << "==========COMMAND: ");
-   for (unsigned i = 0; i < command.size(); ++i)
-   {
-      assert(cout << command.at(i) << " # ");
+   if (!NDEGUG) {
+      assert(cout << "==========COMMAND: ");
+      for (unsigned i = 0; i < command.size(); ++i)
+      {
+         assert(cout << command.at(i) << " # ");
+      }
+      assert(cout << endl);
    }
-   assert(cout << endl);
 
    // check for special builtin commands
    // check for "exit"
@@ -258,4 +350,14 @@ unsigned execute_command(vector<string> command)
    }
    perror("WIFEXITED failed");
    return 1;   // if the child did not exit normally, assume that the return value is a fail
+}
+
+bool isAFd(const string s)
+{
+   for (unsigned i = 0; i < s.size(); ++i)
+   {
+      if (s.at(i) < '0' || s.at(i) > '9')
+         return false;
+   }
+   return true;
 }
