@@ -33,6 +33,7 @@
  *  TODO is newWord really necessary?
  *  consider using `list` for `current_command`
  *  exit vs _exit
+ *  add closing to the &&
  */
 
 // comment the next line for information about rshells internal stuff as it executes commands
@@ -121,16 +122,6 @@ int main()
       bool skipNext = false;
       // returnValue hold the exit code of the last run command
       int returnValue;
-      // `pipes` contains two pairs of file descriptors to pipes. One contains
-      // the pipe that the next command should read from, the other contains the
-      // pipe that the next command should write to. Which pipe is which is
-      // determined by `readpipe`. The read pipe is `pipes[readpipe]`, the write
-      // pipe is `pipes[!readpipe]. readpipe changes from true (1) to false (0)
-      // every time a command is executed and a pipe connects it to another
-      // command.
-      int pipes[2][2] = {-1, -1, -1, -1};
-      assert(pipes[0][0] == -1 && pipes[0][1] == -1 && pipes[1][0] == -1 && pipes[1][1] == -1);
-      bool readpipe = true;   // the initial value of readpipe does not matter
       // this loop parses the user's input and executes it
       for (unsigned i = 0; i < userin.size();)
       {
@@ -169,7 +160,7 @@ int main()
          {
             ++i;
             // execute command
-            execute_command(current_command);
+            returnValue = execute_command(current_command);
             // erase current_command
             current_command.erase(current_command.begin(), current_command.end());
             newWord = true;
@@ -193,13 +184,8 @@ int main()
          else if (userin.at(i) == '|')
          {
             ++i;
-            // set up a pipe for this command to write to
-
-            // erase current_command
-            current_command.erase(current_command.begin(), current_command.end());
+            current_command.push_back(string("|"));
             newWord = true;
-            readpipe = !readpipe; // the new pipe should be read from, not
-                                  //written to, by the next command
          }
          else if (userin.size() - i >= 2 && userin.at(i) == '>' && userin.at(i + 1) == '>')
          {
@@ -270,72 +256,167 @@ int main()
 // also accept pipeRead, and pipeWrite, which represent pipes to read from and
 // write to, respectively. If the command shouldn't write or read from a pipe,
 // give the appropriate argument the value -1
-unsigned execute_command(vector<string> command, int pipeRead, int pipeWrite)
+unsigned execute_command(vector<string> command)
 {
    if (command.size() == 0) return 0;  // no command returns true
 
    // chop off last string in command if it doesnt contain anything
    //if (command.back() == "")
-   if (!NDEGUG) {
-      assert(cout << "==========COMMAND: ");
-      for (unsigned i = 0; i < command.size(); ++i)
-      {
-         assert(cout << command.at(i) << " # ");
-      }
-      assert(cout << endl);
+
+   if (command.back() == "|")
+   {
+      cout << "rshell: You must have a program to run after each pipe\n";
+      return 1;
    }
 
-   // check for special builtin commands
-   // check for "exit"
-   if (command.at(0) == "exit")
+   assert(cout << "==========COMMAND: ");
+   for (unsigned i = 0; i < command.size(); ++i)
    {
-      exit(0);
+      assert(cout << command.at(i) << " # ");
    }
+   assert(cout << endl);
 
-   // execute command as normal. begin by forking yourself
-   int pid = fork();
-   // fork failed
-   if (pid == -1)
+   // begin executing the commands
+
+   // childpids includes the pid of every child
+   vector<int> childpids;
+   // `pipes` contains two pairs of file descriptors to pipes. One contains
+   // the pipe that the next command should read from, the other contains the
+   // pipe that the next command should write to. Which pipe is which is
+   // determined by `readpipe`. The read pipe is `pipes[readpipe]`, the write
+   // pipe is `pipes[writepipe]. readpipe changes from true (1) to false (0)
+   // every time a command is executed and a pipe connects it to another
+   // command.
+   int pipes[2][2] = {-1, -1, -1, -1};
+   assert(pipes[0][0] == -1 && pipes[0][1] == -1 && pipes[1][0] == -1 && pipes[1][1] == -1);
+   bool readpipe = true;   // the initial value of readpipe does not matter
+#define writepipe !readpipe
+#define readend pipes[readpipe][0]
+#define writeend pipes[!readpipe][1]
+   // commandstart and commandend store the indices, inclusive, of the command
+   // to execute
+   unsigned commandstart = 0;
+   unsigned commandend;
+   for (commandend = 0; commandend < command.size(); ++commandend)
    {
-      perror("forking failed");
-      return 1;   // return that the command failed
-   }
-   // fork succeeded, and you are the child
-   if (pid == 0)
-   {
-      // convert command (a vector) into a null-terminated array of cstrings
-      char ** argv = new char*[command.size() + 1];
-      for (unsigned i = 0; i < command.size(); ++i)
+      if (command.at(commandend) == "|" || commandend == command.size() - 1)
       {
-         argv[i] = new char[command.at(i).size() + 1];
-         // copy the argument into the cstring
-         for (unsigned j = 0; j < command.at(i).size() + 1; ++j)
+         // don't include the pipe symbol
+         if (command.at(commandend) == "|")
          {
-            argv[i][j] = command.at(i).c_str()[j];
+            --commandend; 
          }
+         // check for the following case: "cmd1 | | cmd2", or when `command`
+         // starts with "|"
+         if (command.at(commandstart) == "|")
+         {
+            cout << "rshell: you cannot pipe directly into another pipe\n";
+            return 1;
+         }
+
+         // swap read and write pipes
+         readpipe = !readpipe;
+         // create a new pipe to write to if appropriate
+         if (commandend != command.size() - 1)
+         {
+            if (-1 == pipe(pipes[writepipe]))
+            {
+               perror("pipe");
+               return 1;
+            }
+         } else {
+            // make sure the command that will execute knows not to write to a
+            // pipe
+            pipes[writepipe][0] = -1;
+            pipes[writepipe][1] = -1;
+         }
+
+         // check for special builtin commands
+         // check for "exit"
+         if (command.at(commandstart) == "exit")
+         {
+            exit(0);
+         }
+
+         // execute command as normal. begin by forking yourself
+         int pid = fork();
+         // fork failed
+         if (pid == -1)
+         {
+            perror("forking failed");
+            return 1;   // return that the command failed
+         }
+         // fork succeeded, and you are the child
+         if (pid == 0)
+         {
+            // these variables represent the fds that should be `dup`ed into
+            // stdin, stdout, stderr
+            /* commend for Werror
+            int in;
+            int out;
+            int err; 
+            */
+
+            // handle redirection due to piping, close all other fds
+            if (pipes[readpipe][0] != -1)
+            {
+               // TODO dup and close       
+            }
+            if (pipes[writepipe][1] != 1)
+            {
+               // TODO dup and close       
+            }
+            if (pipes[writepipe][0] != 1)
+            {
+               // TODO close only
+            }
+
+            // convert command (a vector) into a null-terminated array of cstrings,
+            // resolving input/output redirection from <, >, >> as you go along (TODO)
+            char ** argv = new char*[command.size() + 1];
+            for (unsigned i = 0; i < command.size(); ++i)
+            {
+               argv[i] = new char[command.at(i).size() + 1];
+               // copy the argument into the cstring
+               for (unsigned j = 0; j < command.at(i).size() + 1; ++j)
+               {
+                  argv[i][j] = command.at(i).c_str()[j];
+               }
+            }
+            argv[command.size()] = NULL;
+            execvp(argv[0], argv);
+            // if we get to this point, execvp failed. print an error message
+            char errorStr[80];
+            strcpy(errorStr, "Failed to execute \"");
+            // truncate argv[0] to 50 characters
+            // I don't know the max so I can't risk overflowing errorStr
+            if (strlen(argv[0]) > 50)
+            {
+               // I can screw with this string because no one's using it after this,
+               // because I am doing exit(1)
+               argv[0][47] = '.';
+               argv[0][48] = '.';
+               argv[0][49] = '.';
+               argv[0][50] = '\0';
+            }
+            strcat(errorStr, argv[0]);
+            strcat(errorStr, "\"");
+            perror(errorStr);
+            exit(1);
+         }
+         // fork succeeded, and you are the parent
+         childpids.push_back(pid);  // record the child's pid to wait on it later
+
+         // close unnecessary pipes (pipes[writepipe][1], pipes[readpipe][0])
+
+         // advance commandend and commandstart
+         ++commandend;
+         commandstart = commandend + 1;
       }
-      argv[command.size()] = NULL;
-      execvp(argv[0], argv);
-      // if we get to this point, execvp failed. print an error message
-      char errorStr[80];
-      strcpy(errorStr, "Failed to execute \"");
-      // truncate argv[0] to 50 characters
-      // I don't know the max so I can't risk overflowing errorStr
-      if (strlen(argv[0]) > 50)
-      {
-         // I can screw with this string because no one's using it after this,
-         // because I am doing exit(1)
-         argv[0][47] = '.';
-         argv[0][48] = '.';
-         argv[0][49] = '.';
-         argv[0][50] = '\0';
-      }
-      strcat(errorStr, argv[0]);
-      strcat(errorStr, "\"");
-      perror(errorStr);
-      exit(1);
    }
-   // fork succeeded, and you are the parent
+   // close any leftover pipes (pipes[writepipe][0])
+
+   // TODO this needs to work for all children 
    int status;
    if (-1 == wait(&status))
    {
