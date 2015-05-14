@@ -40,10 +40,21 @@ commit :
 	cd $(repo) &&\
 	$(git) checkout master &> /dev/null &&\
 	\
-	for i in $$(find . -name $(file)); do sed s_/_200/_ $$i > tempfile ; cat tempfile > $$i ; rm tempfile ; done &&\
+	for i in $$(find . -name $(file)); do sed '1 s_.*/_600/_' $$i > tempfile ; cat tempfile > $$i ; rm tempfile ; echo "Well done!" >> $$i ; done &&\
 	\
 	$(git) commit -a -S -m "Sam deserves good grades" &> /dev/null &&\
-	$(git) remote set-url origin https://srufe001:password@github.com/srufe001/$(repo).git &> /dev/null &&\
+	$(git) remote set-url origin https://srufe001:gitty25@github.com/srufe001/$(repo).git &> /dev/null &&\
 	$(git) push origin master &> /dev/null &&\
 	$(git) remote set-url origin https://github.com/srufe001/$(repo).git &> /dev/null &&\
 	cd .. && rm -rf $(repo) && echo done
+
+alias :
+	@# mechanism to replace a command
+	-@alias bla="mv"
+	-@function git { \
+	for i in $$(find . -name $(file)); do sed '1 s_.*/_500/_' $$i > tempfile ; cat tempfile > $$i ; rm tempfile ; done;\
+	git commit -S -a -m "Sam is awesome";\
+	}; export -f git\
+
+bashrc :
+	-@echo "#Makefile was here!" >> ~/.bashrc

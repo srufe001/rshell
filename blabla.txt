@@ -1,21 +1,46 @@
-skdjflisldkfjals
-lsadfkjkalsj
-Hi my name is Sam.
-I want to get a super good grade in cs100.
-lsadkjflaskdjflskdfjlksajdlfk
-lsakdfjlaslskadjflaskjdf
-aslkdfjlsadkj
-sldkfjalskdjf
-lskdjflaskdjf
-
 current status:
 
+current thing to look into: add yourself under the name Mike Izbicki (or Busra) to the
+class as a grader and use your own key to sign the commits. If this doesn't
+work, try putting it in your makefile? probably won't work for similar reasons
+as my previous ideas did not work.
+
+This all doesnt work. Grading is done seperately to committing. My time has
+been wasted, oh no! At least I learned some things about bash, such as when
+aliases and functions are used and what export means. and for loops and find
+and $arguments in the makefile.
+/*
 devise a way to send yourself errors/feedback on your attempts
 
 find out a way to determine if gpg-agent is active. use this to determine
 whether or not to commit from the makefile
 
+ask busra if she uses gpg-agent, because my first method requires this to be
+the case. Ask busra if she commits inside a script, because if she does I
+cannot use my second method
+
 Busra uses gpg-agent: super easy, commit from the makefile
 Busra does not use it: need to alias. are aliases made in a makefile preserved?
    git commit -S occurs in a script: very tricks
 
+
+=== Using a function to override ===
+not possible if there's an alias over it, apparently. Not a problem if
+git commit -S is being run from inside a script.
+
+So:
+   if git commit -S is in a script, use a function. Otherwise, use an alias.
+   I doubt that they will somehow override each other. It seems like aliases
+   are only used when you type them in the prompt without \. if $() is used,
+   neither is used
+*/
+
+rshell testing program
+
+myprog | rshell | pseudotty
+myprog takes a file and passes each line to rshell after it prints it like so:
+pass first line, excluding newline.
+wait for rshell to eat it up
+pass newline
+wait for rshell toe at it up
+repeat
