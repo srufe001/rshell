@@ -269,12 +269,14 @@ unsigned execute_command(vector<string> command)
       return 1;
    }
 
-   assert(cout << "==========COMMAND: ");
+   assert(cout << "==========LINE: ");
+#ifndef NDEBUG
    for (unsigned i = 0; i < command.size(); ++i)
    {
       assert(cout << command.at(i) << " # ");
    }
    assert(cout << endl);
+#endif
 
    // begin executing the commands
 
@@ -324,12 +326,9 @@ unsigned execute_command(vector<string> command)
                perror("pipe");
                return 1;
             }
-         } else {
-            // make sure the command that will execute knows not to write to a
-            // pipe
-            pipes[writepipe][0] = -1;
-            pipes[writepipe][1] = -1;
          }
+
+         assert(cout << "pipevars contain: " << pipes[readpipe][0] << " "<< pipes[readpipe][1] << " "<< pipes[writepipe][0] << " "<< pipes[writepipe][1] << " " << endl);
 
          // check for special builtin commands
          // check for "exit"
@@ -351,30 +350,19 @@ unsigned execute_command(vector<string> command)
          {
             // these variables represent the fds that should be `dup`ed into
             // stdin, stdout, stderr
-            /* commend for Werror
-            int in;
-            int out;
-            int err; 
-            */
+            // initially they are the current fds of the pipes. It is ok if the
+            // pipe has not been created and has value -1
+            int in = pipes[readpipe][0];
+            int out = pipes[writepipe][1];
+            int err = out;
 
-            // handle redirection due to piping, close all other fds
-            if (pipes[readpipe][0] != -1)
-            {
-               // TODO dup and close       
-            }
-            if (pipes[writepipe][1] != 1)
-            {
-               // TODO dup and close       
-            }
-            if (pipes[writepipe][0] != 1)
-            {
-               // TODO close only
-            }
+            assert(cout << "pipe fds: " << in << " " << out << " " << err << endl);
 
             // convert command (a vector) into a null-terminated array of cstrings,
             // resolving input/output redirection from <, >, >> as you go along (TODO)
-            char ** argv = new char*[command.size() + 1];
-            for (unsigned i = 0; i < command.size(); ++i)
+#define argc (commandend - commandstart + 2)
+            char ** argv = new char*[argc];
+            for (unsigned i = commandstart; i <= commandend; ++i)
             {
                argv[i] = new char[command.at(i).size() + 1];
                // copy the argument into the cstring
@@ -383,8 +371,50 @@ unsigned execute_command(vector<string> command)
                   argv[i][j] = command.at(i).c_str()[j];
                }
             }
-            argv[command.size()] = NULL;
+            argv[argc - 1] = NULL;
+
+            assert(cout << "final fds: " << in << " " << out << " " << err << endl);
+
+            assert (cout << "==============COMMAND: ");
+#ifndef NDEBUG
+            for (unsigned i = 0; i < argc; ++i)
+            {
+               assert(cout << command.at(i) << " # ");
+            }
+            assert(cout << endl);
+#endif
+
+            // dup fds into stdin, stdout, stderr, close old fds.
+            if (in != -1)
+            {
+               if (-1 == dup2(in, 0))
+               {
+                  perror("dup2");
+                  return 1;
+               }
+               if (-1 == close(in))
+                  perror("close");
+            }
+            if (out != -1)
+            {
+               if (-1 == dup2(out, 1))
+               {
+                  perror("dup2");
+                  return 1;
+               }
+            }
+            if (err != -1)
+            {
+               if (-1 == dup2(err, 2))
+               {
+                  perror("dup2");
+                  return 1;
+               }
+            }
+
+            // execute the command
             execvp(argv[0], argv);
+
             // if we get to this point, execvp failed. print an error message
             char errorStr[80];
             strcpy(errorStr, "Failed to execute \"");
@@ -407,15 +437,34 @@ unsigned execute_command(vector<string> command)
          // fork succeeded, and you are the parent
          childpids.push_back(pid);  // record the child's pid to wait on it later
 
-         // close unnecessary pipes (pipes[writepipe][1], pipes[readpipe][0])
+         // close unnecessary pipes (pipes[writepipe][1], pipes[readpipe][0]),
+         // and set them to -1
+         if (pipes[writepipe][1] != -1)
+         {
+            if (-1 == close(pipes[writepipe][1]))
+               perror("close");
+            pipes[writepipe][1] = -1;
+         }
+         if (pipes[readpipe][0] != -1)
+         {
+            if (-1 == close(pipes[readpipe][0]))
+               perror("close");
+         }
 
          // advance commandend and commandstart
          ++commandend;
          commandstart = commandend + 1;
       }
    }
-   // close any leftover pipes (pipes[writepipe][0])
+   // close any leftover pipes (pipes[writepipe][0]), set the fd to -1? not sure
+   // if necessary this time around
+   if (pipes[writepipe][0] != -1)
+   {
+      if (-1 == close(pipes[writepipe][0]))
+         perror("close");
+   }
 
+   /*
    // TODO this needs to work for all children 
    int status;
    if (-1 == wait(&status))
@@ -430,6 +479,7 @@ unsigned execute_command(vector<string> command)
       return WEXITSTATUS(status);
    }
    perror("WIFEXITED failed");
+   */
    return 1;   // if the child did not exit normally, assume that the return value is a fail
 }
 
