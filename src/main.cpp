@@ -92,7 +92,7 @@ int main()
    while (true)
    {
       // print prompt
-      cout << username << "@" << hostname << "$ ";
+      cout << "\x1b[32m" << username << "@" << hostname << "$ " << "\x1b[0m";
 
       // get user input
       string userin;
@@ -358,41 +358,7 @@ unsigned execute_command(vector<string> command)
             int in = pipes[readpipe][0];
             int out = pipes[writepipe][1];
             int err = out;
-
-            //assert(cerr << "pipe fds: " << in << " " << out << " " << err << endl);
-            //assert(cerr << commandstart << " " << commandend << endl);
-
-            // convert command (a vector) into a null-terminated array of cstrings,
-            // resolving input/output redirection from <, >, >> as you go along (TODO)
-/*#define*/ unsigned argc = commandend - commandstart + 2;
-            //assert(cerr << "argc: " << argc << endl);
-            char ** argv = new char*[argc];
-            for (unsigned i = commandstart; i <= commandend; ++i)
-            {
-               argv[i - commandstart] = new char[command.at(i).size() + 1];
-               // copy the argument into the cstring TODO replace with strcpy?
-               strcpy(argv[i - commandstart], command.at(i).c_str());
-            }
-            argv[argc - 1] = NULL;
-
-            //assert(cerr << "final fds: " << in << " " << out << " " << err << endl);
-            //assert (cerr << "==============COMMAND: ");
-#ifndef NDEBUG
-            for (unsigned i = 0; i < argc - 1; ++i)
-            {
-               //assert(cerr << argv[i] << " # ");
-            }
-            //assert(cerr << endl);
-#endif
-            // TODO remove
-            cout << "argv: ";
-            for (unsigned i = 0; i < argc - 1; ++i)
-            {
-               cout << argv[i] << " # ";
-            }
-            cout << endl;
-
-            // dup fds into stdin, stdout, stderr, close old fds.
+            // dup fds into stdin, stdout, stderr, TODO close old fds.
             if (in != -1)
             {
                if (-1 == dup2(in, 0))
@@ -426,6 +392,31 @@ unsigned execute_command(vector<string> command)
                if (-1 == close(err))
                   perror("close");
             }
+
+            //assert(cerr << "pipe fds: " << in << " " << out << " " << err << endl);
+            //assert(cerr << commandstart << " " << commandend << endl);
+
+            // convert command (a vector) into a null-terminated array of cstrings,
+            // resolving input/output redirection from <, >, >> as you go along (TODO)
+/*#define*/ unsigned argc = commandend - commandstart + 2;
+            //assert(cerr << "argc: " << argc << endl);
+            char ** argv = new char*[argc];
+            for (unsigned i = commandstart; i <= commandend; ++i)
+            {
+               argv[i - commandstart] = new char[command.at(i).size() + 1];
+               // copy the argument into the cstring TODO replace with strcpy?
+               strcpy(argv[i - commandstart], command.at(i).c_str());
+            }
+            argv[argc - 1] = NULL;
+
+            // TODO remove
+            cout << "argv: ";
+            for (unsigned i = 0; i < argc - 1; ++i)
+            {
+               cout << argv[i] << " # ";
+            }
+            cout << endl;
+
 
             // execute the command
             execvp(argv[0], argv);
@@ -469,16 +460,6 @@ unsigned execute_command(vector<string> command)
          // advance commandend and commandstart
          ++commandend;
          commandstart = commandend + 1;
-      }
-   }
-   // close any leftover pipes (pipes[writepipe][0]), set the fd to -1? not sure
-   // if necessary this time around
-   if (pipes[writepipe][0] != -1)
-   {
-      if (-1 == close(pipes[writepipe][0]))
-      {
-         perror("closing at the end");
-         cout << pipes[writepipe][0] << endl;
       }
    }
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+#show >, <, >> overriding |.
 
 #show that the last command's truth value is taken
 
