@@ -34,10 +34,13 @@
  *  consider using `list` for `current_command`
  *  exit vs _exit
  *  add closing to the &&
+ *  remove couts, uncomment asserts as well maybe
+ *  improve error message for "| command"
+ *  still getting WIFEXITED FAILED on single command after "| |"
  */
 
 // comment the next line for information about rshells internal stuff as it executes commands
-//#define NDEBUG
+#define NDEBUG
 
 #include<iostream>
 #include<string>
@@ -94,7 +97,7 @@ int main()
       // get user input
       string userin;
       getline(cin, userin);
-      assert(cout << "################ user inputted: " << userin << endl);
+      //assert(cerr << "################ user inputted: " << userin << endl);
 
       // ==============================
       //       Process user input
@@ -103,7 +106,7 @@ int main()
       // TODO: you may have to move this down if you ever want to include "" or
       // ''
       userin = userin.substr(0, userin.find("#", 0)); 
-      assert(cout << "######## after comment removal: " << userin << endl << endl);
+      //assert(cerr << "######## after comment removal: " << userin << endl << endl);
 
       // current_command stores all white-space seperated strings found so far.
       // when a connector is found, current_command is used to execute a command and
@@ -138,7 +141,7 @@ int main()
             newWord = true;
             // don't execute next command if the current command failed
             skipNext = (returnValue) ? true : false;
-            assert(cout << "&&&&&&&&&&&&&&&&&&&&&&" << endl << endl);
+            //assert(cerr << "&&&&&&&&&&&&&&&&&&&&&&" << endl << endl);
          }
          // check for || connector
          else if (userin.size() - i >= 2 && userin.at(i) == '|' && userin.at(i + 1) == '|')
@@ -153,7 +156,7 @@ int main()
             newWord = true;
             // skip the next command if the current command succeeded
             skipNext = (!returnValue) ? true : false;
-            assert(cout << "||||||||||||||||||||||" << endl << endl);
+            //assert(cerr << "||||||||||||||||||||||" << endl << endl);
          }
          // check for ; connector
          else if (/*TODO remove userin.size() - i >= 1 && */userin.at(i) == ';')
@@ -166,7 +169,7 @@ int main()
             newWord = true;
             // the command after ; always executes
             skipNext = false;
-            assert(cout << ";;;;;;;;;;;;;;;;;;;;;" << endl << endl);
+            //assert(cerr << ";;;;;;;;;;;;;;;;;;;;;" << endl << endl);
             // continue regardless of return value
          } else if (skipNext)
          {
@@ -265,17 +268,17 @@ unsigned execute_command(vector<string> command)
 
    if (command.back() == "|")
    {
-      cout << "rshell: You must have a program to run after each pipe\n";
+      cerr << "rshell: You must have a program to run after each pipe\n";
       return 1;
    }
 
-   assert(cout << "==========LINE: ");
+   //assert(cerr << "==========LINE: ");
 #ifndef NDEBUG
    for (unsigned i = 0; i < command.size(); ++i)
    {
-      assert(cout << command.at(i) << " # ");
+      //assert(cerr << command.at(i) << " # ");
    }
-   assert(cout << endl);
+   //assert(cerr << endl);
 #endif
 
    // begin executing the commands
@@ -290,7 +293,7 @@ unsigned execute_command(vector<string> command)
    // every time a command is executed and a pipe connects it to another
    // command.
    int pipes[2][2] = {-1, -1, -1, -1};
-   assert(pipes[0][0] == -1 && pipes[0][1] == -1 && pipes[1][0] == -1 && pipes[1][1] == -1);
+   //assert(pipes[0][0] == -1 && pipes[0][1] == -1 && pipes[1][0] == -1 && pipes[1][1] == -1);
    bool readpipe = true;   // the initial value of readpipe does not matter
 #define writepipe !readpipe
 #define readend pipes[readpipe][0]
@@ -312,8 +315,8 @@ unsigned execute_command(vector<string> command)
          // starts with "|"
          if (command.at(commandstart) == "|")
          {
-            cout << "rshell: you cannot pipe directly into another pipe\n";
-            return 1;
+            cerr << "rshell: you cannot pipe directly into another pipe\n";
+            break;
          }
 
          // swap read and write pipes
@@ -328,7 +331,7 @@ unsigned execute_command(vector<string> command)
             }
          }
 
-         assert(cout << "pipevars contain: " << pipes[readpipe][0] << " "<< pipes[readpipe][1] << " "<< pipes[writepipe][0] << " "<< pipes[writepipe][1] << " " << endl);
+         //assert(cerr << "pipevars contain: " << pipes[readpipe][0] << " "<< pipes[readpipe][1] << " "<< pipes[writepipe][0] << " "<< pipes[writepipe][1] << " " << endl);
 
          // check for special builtin commands
          // check for "exit"
@@ -356,33 +359,38 @@ unsigned execute_command(vector<string> command)
             int out = pipes[writepipe][1];
             int err = out;
 
-            assert(cout << "pipe fds: " << in << " " << out << " " << err << endl);
+            //assert(cerr << "pipe fds: " << in << " " << out << " " << err << endl);
+            //assert(cerr << commandstart << " " << commandend << endl);
 
             // convert command (a vector) into a null-terminated array of cstrings,
             // resolving input/output redirection from <, >, >> as you go along (TODO)
-#define argc (commandend - commandstart + 2)
+/*#define*/ unsigned argc = commandend - commandstart + 2;
+            //assert(cerr << "argc: " << argc << endl);
             char ** argv = new char*[argc];
             for (unsigned i = commandstart; i <= commandend; ++i)
             {
-               argv[i] = new char[command.at(i).size() + 1];
-               // copy the argument into the cstring
-               for (unsigned j = 0; j < command.at(i).size() + 1; ++j)
-               {
-                  argv[i][j] = command.at(i).c_str()[j];
-               }
+               argv[i - commandstart] = new char[command.at(i).size() + 1];
+               // copy the argument into the cstring TODO replace with strcpy?
+               strcpy(argv[i - commandstart], command.at(i).c_str());
             }
             argv[argc - 1] = NULL;
 
-            assert(cout << "final fds: " << in << " " << out << " " << err << endl);
-
-            assert (cout << "==============COMMAND: ");
+            //assert(cerr << "final fds: " << in << " " << out << " " << err << endl);
+            //assert (cerr << "==============COMMAND: ");
 #ifndef NDEBUG
-            for (unsigned i = 0; i < argc; ++i)
+            for (unsigned i = 0; i < argc - 1; ++i)
             {
-               assert(cout << command.at(i) << " # ");
+               //assert(cerr << argv[i] << " # ");
             }
-            assert(cout << endl);
+            //assert(cerr << endl);
 #endif
+            // TODO remove
+            cout << "argv: ";
+            for (unsigned i = 0; i < argc - 1; ++i)
+            {
+               cout << argv[i] << " # ";
+            }
+            cout << endl;
 
             // dup fds into stdin, stdout, stderr, close old fds.
             if (in != -1)
@@ -402,6 +410,11 @@ unsigned execute_command(vector<string> command)
                   perror("dup2");
                   return 1;
                }
+               if (err != out)
+               {
+                  if (-1 == close(out))
+                     perror("close");
+               }
             }
             if (err != -1)
             {
@@ -410,6 +423,8 @@ unsigned execute_command(vector<string> command)
                   perror("dup2");
                   return 1;
                }
+               if (-1 == close(err))
+                  perror("close");
             }
 
             // execute the command
@@ -442,13 +457,13 @@ unsigned execute_command(vector<string> command)
          if (pipes[writepipe][1] != -1)
          {
             if (-1 == close(pipes[writepipe][1]))
-               perror("close");
+               perror("closing writepipe 1");
             pipes[writepipe][1] = -1;
          }
          if (pipes[readpipe][0] != -1)
          {
             if (-1 == close(pipes[readpipe][0]))
-               perror("close");
+               perror("closing readpipe 0");
          }
 
          // advance commandend and commandstart
@@ -461,25 +476,39 @@ unsigned execute_command(vector<string> command)
    if (pipes[writepipe][0] != -1)
    {
       if (-1 == close(pipes[writepipe][0]))
-         perror("close");
+      {
+         perror("closing at the end");
+         cout << pipes[writepipe][0] << endl;
+      }
    }
 
-   /*
-   // TODO this needs to work for all children 
    int status;
-   if (-1 == wait(&status))
+   bool lastchildreturned = false;
+   for (unsigned i = 0; i < childpids.size(); ++i)
    {
-      perror("wait failed");
-      exit(1);
+      int stat;
+      int childpid;
+      if (-1 == (childpid = wait(&stat)))
+      {
+         perror("wait failed");
+         exit(1);
+      } else if (childpid == childpids.back())
+      {
+         // update status iff the waited-on child was the final command
+         status = stat;
+         lastchildreturned = true;
+      }
+      assert(cerr << "waited on child " << childpid << ", child was " << ((childpid == childpids.back()) ? "last" : "not last") << endl);
    }
-   // determine the return value of the child
+   if (!lastchildreturned)
+      return 1;
+   // determine the return value of the last child
    if (WIFEXITED(status))
    {
-      assert(cout << "==========RETURNED: " << WEXITSTATUS(status) << endl << endl);
+      //assert(cerr << "==========RETURNED: " << WEXITSTATUS(status) << endl << endl);
       return WEXITSTATUS(status);
    }
-   perror("WIFEXITED failed");
-   */
+   cerr << "WIFEXITED failed\n";
    return 1;   // if the child did not exit normally, assume that the return value is a fail
 }
 
