@@ -281,7 +281,6 @@ int main()
                      current_command.back().push_back(userin.at(i)); 
                   }
                }
-               cout << "string parsed successsfully" << endl;
             } else {
                current_command.back().push_back(userin.at(i));
                ++i;
@@ -456,6 +455,44 @@ unsigned execute_command(vector<string> command)
                      continue;
                   } else {
                      cerr << "you must give `<' a file to read from\n" << endl;
+                     exit(1);
+                  }
+               }
+               if (command.at(i) == "<<<")
+               {
+                  if (i <= commandend - 1)
+                  {
+                     // create a pipe to hold the string
+                     int stringholder[2];
+                     if (-1 == pipe(stringholder))
+                     {
+                        perror("pipe");
+                        exit(1);
+                     }
+                     // add a newline to the user's input
+                     char *userstr = new char[command.at(i + 1).size() + 1];
+                     strcpy(userstr, command.at(i + 1).c_str());
+                     userstr[command.at(i + 1).size()] = '\n';
+                     if (-1 == write(stringholder[1], userstr, command.at(i + 1).size() + 1))
+                     {
+                        perror("write");
+                        exit(1); 
+                     }
+                     delete[] userstr;
+                     if (-1 == close(stringholder[1]))
+                     {
+                        perror("close");
+                        exit(1);
+                     }
+                     if (-1 == dup2(stringholder[0], 0))
+                     {
+                        perror("dup2");
+                        exit(1);
+                     }
+                     ++i;
+                     continue;
+                  } else {
+                     cerr << "you must give `<<<' a string to use as input\n" << endl;
                      exit(1);
                   }
                }
