@@ -37,6 +37,8 @@
  *  remove couts, uncomment asserts as well maybe
  *  improve error message for "| command"
  *  still getting WIFEXITED FAILED on single command after "| |"
+ *  ls > cat.txt
+ *
  */
 
 // comment the next line for information about rshells internal stuff as it executes commands
@@ -54,6 +56,7 @@
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<stdio.h>
+#include<fcntl.h>
 
 using namespace std;
 
@@ -194,36 +197,46 @@ int main()
          {
             i += 2;
             // check if there might be a file descriptor preceding the >>
+            string s;
             if (!newWord)
             {
                if (isAFd(current_command.back()))
                {
-                  string s = current_command.back();
-                  current_command.back() = string(">");
-                  current_command.push_back(s);
+                  s = current_command.back();
+                  current_command.erase(current_command.end() - 1);
                }
             }
-            current_command.back() = string(">");
-            current_command.push_back(string("1"));
+            current_command.push_back(string(">>"));
+            if (s.size() > 0)
+            {
+               current_command.push_back(s);
+            } else {
+               current_command.push_back(string("1"));
+            }
             newWord = true;
          }
-         // > is stores in `current_command` as a string containing ">" followed
+         // > is stored in `current_command` as a string containing ">" followed
          // by a string containing the file descriptor to be redirected
          else if (userin.at(i) == '>')
          {
             ++i;
             // check if there might be a file descriptor preceding the >
+            string s;
             if (!newWord)
             {
                if (isAFd(current_command.back()))
                {
-                  string s = current_command.back();
-                  current_command.back() = string(">");
-                  current_command.push_back(s);
+                  s = current_command.back();
+                  current_command.erase(current_command.end() - 1);
                }
             }
-            current_command.back() = string(">");
-            current_command.push_back(string("1"));
+            current_command.push_back(string(">"));
+            if (s.size() > 0)
+            {
+               current_command.push_back(s);
+            } else {
+               current_command.push_back(string("1"));
+            }
             newWord = true;
          }
          else if (userin.at(i) == '<')
@@ -233,15 +246,36 @@ int main()
             newWord = true;
          }
          else {
-            // The character is not a connector, add it to current_command
-            // add a new string to current_command if necessary
+            // The character is not a connector or redirection
             if (newWord)
             {
                current_command.push_back(string());
                newWord = false;
             }
-            current_command.back().push_back(userin.at(i));
-            ++i;
+            // allow backslash escaping of "
+            if (userin.at(i) == '\\' && i < userin.size() - 1 && userin.at(i + 1) == '\"')
+            {
+               current_command.back().push_back(userin.at(i + 1)); 
+               i += 2;
+            } else if (userin.at(i) == '\"')
+            {
+               // if the character is a ", process everything literally until next
+               // unescaped "
+               for (++i; i < userin.size() && userin.at(i) != '\"'; ++i)
+               {
+                  // allow backslash escaping of "
+                  if (userin.at(i) == '\\' && i < userin.size() - 1 && userin.at(++i) == '\"')
+                  {
+                     current_command.back().push_back(userin.at(i)); 
+                  } else {
+                     current_command.back().push_back(userin.at(i)); 
+                  }
+               }
+               cout << "string parsed successsfully" << endl;
+            } else {
+               current_command.back().push_back(userin.at(i));
+               ++i;
+            }
          }
       }
       // done parsing input, execute whatever you have at this point
@@ -262,6 +296,11 @@ int main()
 unsigned execute_command(vector<string> command)
 {
    if (command.size() == 0) return 0;  // no command returns true
+
+   cout << "FULL COMMAND: ";
+   for (unsigned i = 0; i < command.size(); ++i)
+      cout << command.at(i) << " # ";
+   cout << endl;
 
    if (command.back() == "|")
    {
@@ -383,24 +422,82 @@ unsigned execute_command(vector<string> command)
             //assert(cerr << commandstart << " " << commandend << endl);
 
             /* Build `argv` from `command` and handle redirection involving <, >, >> */
-            unsigned argc = commandend - commandstart + 2;
-            char ** argv = new char*[argc];
+            unsigned argc = 0;
+            char ** argv = new char*[commandend - commandstart + 2];
             for (unsigned i = commandstart; i <= commandend; ++i)
             {
-               argv[i - commandstart] = new char[command.at(i).size() + 1];
-               // copy the argument into the cstring TODO replace with strcpy?
-               strcpy(argv[i - commandstart], command.at(i).c_str());
+               // check if next command is a redirection, and handle it if it is
+               if (command.at(i) == "<")
+               {
+                  if (i <= commandend - 1)
+                  {
+                     if (-1 == close(0))
+                     {
+                        perror("close");
+                        return 1;
+                     }
+                     // open will use fd 0, because I just closed it
+                     if (-1 == open(command.at(i + 1).c_str(), O_RDONLY)) 
+                     {
+                        perror("open");
+                        return 1;
+                     }
+                     ++i;
+                     continue;
+                  } else {
+                     cerr << "you must give `<' a file to read from\n" << endl;
+                  }
+               }
+               if (i <= commandend - 2)
+               {
+                  if (command.at(i) == ">")
+                  {
+                     int targetfd = atoi(command.at(i + 1).c_str());
+                     int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR); 
+                     if (-1 == initialfd)
+                     {
+                        perror("open");
+                        return 1;
+                     }
+                     if (-1 == dup2(initialfd, targetfd))
+                     {
+                        perror("dup2");
+                        return 1;
+                     }
+                     if (-1 == close(initialfd))
+                     {
+                        perror("close");
+                     }
+                     i += 2;
+                     continue;
+                  }
+                  if (command.at(i) == ">>")
+                  {
+                     int targetfd = atoi(command.at(i + 1).c_str());
+                     int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR); 
+                     if (-1 == initialfd)
+                     {
+                        perror("open");
+                        return 1;
+                     }
+                     if (-1 == dup2(initialfd, targetfd))
+                     {
+                        perror("dup2");
+                        return 1;
+                     }
+                     if (-1 == close(initialfd))
+                     {
+                        perror("close");
+                     }
+                     i += 2;
+                     continue;
+                  }
+               }
+               argv[argc] = new char[command.at(i).size() + 1];
+               strcpy(argv[argc], command.at(i).c_str());
+               ++argc;
             }
-            argv[argc - 1] = NULL;
-
-            // TODO remove
-            cout << "argv: ";
-            for (unsigned i = 0; i < argc - 1; ++i)
-            {
-               cout << argv[i] << " # ";
-            }
-            cout << endl;
-
+            argv[argc] = NULL;
 
             /* Execute the command */
             execvp(argv[0], argv);
