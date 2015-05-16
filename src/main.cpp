@@ -37,7 +37,6 @@
  *  remove couts, uncomment asserts as well maybe
  *  improve error message for "| command"
  *  still getting WIFEXITED FAILED on single command after "| |"
- *  ls > cat.txt
  *  FIXED (Don't ever "return 1" in the child! use exit(1)) "ls >" or ls ">>", after this "exit" does not work properly
  *
  */
@@ -350,7 +349,12 @@ unsigned execute_command(vector<string> command)
          // starts with "|"
          if (command.at(commandstart) == "|")
          {
-            cerr << "rshell: you cannot pipe directly into another pipe\n";
+            if (commandstart > 0)
+            {
+               cerr << "rshell: you cannot pipe directly into another pipe\n";
+            } else {
+               cerr << "rshell: you cannot start a command with a pipe\n";
+            }
             break;
          }
 
