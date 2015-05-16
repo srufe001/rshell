@@ -13,3 +13,5 @@
 # show redirection on things you don't have read/write access to?
 
 # show rediection at front of line "2> /dev/null ls"
+
+# incomplete forms of > >> etc "echo hello >"

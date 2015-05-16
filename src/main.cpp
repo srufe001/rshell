@@ -38,6 +38,7 @@
  *  improve error message for "| command"
  *  still getting WIFEXITED FAILED on single command after "| |"
  *  ls > cat.txt
+ *  FIXED (Don't ever "return 1" in the child! use exit(1)) "ls >" or ls ">>", after this "exit" does not work properly
  *
  */
 
@@ -193,6 +194,8 @@ int main()
             current_command.push_back(string("|"));
             newWord = true;
          }
+         // >> is stored in `current_command` as a string containing ">>" followed
+         // by a string containing the file descriptor to be redirected
          else if (userin.size() - i >= 2 && userin.at(i) == '>' && userin.at(i + 1) == '>')
          {
             i += 2;
@@ -239,6 +242,12 @@ int main()
             }
             newWord = true;
          }
+         else if (userin.size() - i >= 3 && userin.at(i) == '<' && userin.at(i + 1) == '<' && userin.at(i + 1) == '<')
+         {
+            i += 3; 
+            current_command.push_back(string("<<<"));
+            newWord = true;
+         }
          else if (userin.at(i) == '<')
          {
             ++i;
@@ -257,7 +266,8 @@ int main()
             {
                current_command.back().push_back(userin.at(i + 1)); 
                i += 2;
-            } else if (userin.at(i) == '\"')
+            }
+            else if (userin.at(i) == '\"')
             {
                // if the character is a ", process everything literally until next
                // unescaped "
@@ -380,7 +390,7 @@ unsigned execute_command(vector<string> command)
                if (-1 == dup2(pipes[readpipe][0], 0))
                {
                   perror("dup2");
-                  return 1;
+                  exit(1);
                }
             }
             if (pipes[writepipe][1] != -1)
@@ -388,12 +398,12 @@ unsigned execute_command(vector<string> command)
                if (-1 == dup2(pipes[writepipe][1], 1))
                {
                   perror("dup2");
-                  return 1;
+                  exit(1);
                }
                if (-1 == dup2(pipes[writepipe][1], 2))
                {
                   perror("dup2");
-                  return 1;
+                  exit(1);
                }
             }
             //close any pipe-related fds remaining (besides 0, 1, 2, of course)
@@ -434,35 +444,36 @@ unsigned execute_command(vector<string> command)
                      if (-1 == close(0))
                      {
                         perror("close");
-                        return 1;
+                        exit(1);
                      }
                      // open will use fd 0, because I just closed it
                      if (-1 == open(command.at(i + 1).c_str(), O_RDONLY)) 
                      {
                         perror("open");
-                        return 1;
+                        exit(1);
                      }
                      ++i;
                      continue;
                   } else {
                      cerr << "you must give `<' a file to read from\n" << endl;
+                     exit(1);
                   }
                }
-               if (i <= commandend - 2)
+               if (command.at(i) == ">")
                {
-                  if (command.at(i) == ">")
+                  if (i <= commandend - 2)
                   {
                      int targetfd = atoi(command.at(i + 1).c_str());
                      int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR); 
                      if (-1 == initialfd)
                      {
                         perror("open");
-                        return 1;
+                        exit(1);
                      }
                      if (-1 == dup2(initialfd, targetfd))
                      {
                         perror("dup2");
-                        return 1;
+                        exit(1);
                      }
                      if (-1 == close(initialfd))
                      {
@@ -470,20 +481,26 @@ unsigned execute_command(vector<string> command)
                      }
                      i += 2;
                      continue;
+                  } else {
+                     cerr << "rshell: You must give `>' a file to redirect into" << endl;
+                     exit(1);
                   }
-                  if (command.at(i) == ">>")
+               }
+               if (command.at(i) == ">>")
+               {
+                  if (i <= commandend - 2)
                   {
                      int targetfd = atoi(command.at(i + 1).c_str());
                      int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR); 
                      if (-1 == initialfd)
                      {
                         perror("open");
-                        return 1;
+                        exit(1);
                      }
                      if (-1 == dup2(initialfd, targetfd))
                      {
                         perror("dup2");
-                        return 1;
+                        exit(1);
                      }
                      if (-1 == close(initialfd))
                      {
@@ -491,6 +508,9 @@ unsigned execute_command(vector<string> command)
                      }
                      i += 2;
                      continue;
+                  } else {
+                     cerr << "rshell: You must give `>>' a file to redirect into" << endl;
+                     exit(1);
                   }
                }
                argv[argc] = new char[command.at(i).size() + 1];
