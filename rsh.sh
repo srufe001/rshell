@@ -1,5 +1,10 @@
 #!/bin/bash
 
+cmds="ls  | grep bin
+echo heooo | sed s_oo_ll_
+exit"
+echo "$cmds" | bin/rshell
+
 #show >, <, >> overriding |.
 
 #show that the last command's truth value is taken

@@ -95,12 +95,13 @@ int main()
    while (true)
    {
       // print prompt
-      cout << "\x1b[32m" << username << "@" << hostname << "$ " << "\x1b[0m";
+      cout /*<< "\x1b[32m"*/ << username << "@" << hostname << "$ " /*<< "\x1b[0m"*/;
 
       // get user input
       string userin;
       getline(cin, userin);
       //assert(cerr << "################ user inputted: " << userin << endl);
+      cout << userin << "\n";
 
       // ==============================
       //       Process user input
@@ -305,11 +306,6 @@ int main()
 unsigned execute_command(vector<string> command)
 {
    if (command.size() == 0) return 0;  // no command returns true
-
-   cout << "FULL COMMAND: ";
-   for (unsigned i = 0; i < command.size(); ++i)
-      cout << command.at(i) << " # ";
-   cout << endl;
 
    if (command.back() == "|")
    {
