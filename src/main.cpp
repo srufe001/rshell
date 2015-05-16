@@ -263,41 +263,27 @@ unsigned execute_command(vector<string> command)
 {
    if (command.size() == 0) return 0;  // no command returns true
 
-   // chop off last string in command if it doesnt contain anything
-   //if (command.back() == "")
-
    if (command.back() == "|")
    {
       cerr << "rshell: You must have a program to run after each pipe\n";
       return 1;
    }
 
-   //assert(cerr << "==========LINE: ");
-#ifndef NDEBUG
-   for (unsigned i = 0; i < command.size(); ++i)
-   {
-      //assert(cerr << command.at(i) << " # ");
-   }
-   //assert(cerr << endl);
-#endif
+   /* Begin executing the commands */
 
-   // begin executing the commands
-
-   // childpids includes the pid of every child
+   // `childpids` includes the pid of every child, in order, such that
+   // `childpids.back()` contains the pid of the last child
    vector<int> childpids;
    // `pipes` contains two pairs of file descriptors to pipes. One contains
    // the pipe that the next command should read from, the other contains the
    // pipe that the next command should write to. Which pipe is which is
-   // determined by `readpipe`. The read pipe is `pipes[readpipe]`, the write
-   // pipe is `pipes[writepipe]. readpipe changes from true (1) to false (0)
+   // determined by `readpipe`. The read pipe's fds are in `pipes[readpipe]`, the write
+   // pipe's fds are in `pipes[writepipe]. `readpipe` changes from true (1) to false (0)
    // every time a command is executed and a pipe connects it to another
    // command.
    int pipes[2][2] = {-1, -1, -1, -1};
-   //assert(pipes[0][0] == -1 && pipes[0][1] == -1 && pipes[1][0] == -1 && pipes[1][1] == -1);
    bool readpipe = true;   // the initial value of readpipe does not matter
-#define writepipe !readpipe
-#define readend pipes[readpipe][0]
-#define writeend pipes[!readpipe][1]
+   #define writepipe !readpipe
    // commandstart and commandend store the indices, inclusive, of the command
    // to execute
    unsigned commandstart = 0;
@@ -331,10 +317,7 @@ unsigned execute_command(vector<string> command)
             }
          }
 
-         //assert(cerr << "pipevars contain: " << pipes[readpipe][0] << " "<< pipes[readpipe][1] << " "<< pipes[writepipe][0] << " "<< pipes[writepipe][1] << " " << endl);
-
-         // check for special builtin commands
-         // check for "exit"
+         /* Check for special builtin commands */
          if (command.at(commandstart) == "exit")
          {
             exit(0);
@@ -346,60 +329,61 @@ unsigned execute_command(vector<string> command)
          if (pid == -1)
          {
             perror("forking failed");
-            return 1;   // return that the command failed
+            return 1;
          }
-         // fork succeeded, and you are the child
+         /* Fork succeeded, and you are the child */
          if (pid == 0)
          {
-            // these variables represent the fds that should be `dup`ed into
-            // stdin, stdout, stderr
-            // initially they are the current fds of the pipes. It is ok if the
-            // pipe has not been created and has value -1
-            int in = pipes[readpipe][0];
-            int out = pipes[writepipe][1];
-            int err = out;
-            // dup fds into stdin, stdout, stderr, TODO close old fds.
-            if (in != -1)
+            /* Prepare child's fds for piping */
+            // dup fds for pipes into stdin, stdout, stderr
+            if (pipes[readpipe][0] != -1)
             {
-               if (-1 == dup2(in, 0))
+               if (-1 == dup2(pipes[readpipe][0], 0))
                {
                   perror("dup2");
                   return 1;
-               }
-               if (-1 == close(in))
-                  perror("close");
-            }
-            if (out != -1)
-            {
-               if (-1 == dup2(out, 1))
-               {
-                  perror("dup2");
-                  return 1;
-               }
-               if (err != out)
-               {
-                  if (-1 == close(out))
-                     perror("close");
                }
             }
-            if (err != -1)
+            if (pipes[writepipe][1] != -1)
             {
-               if (-1 == dup2(err, 2))
+               if (-1 == dup2(pipes[writepipe][1], 1))
                {
                   perror("dup2");
                   return 1;
                }
-               if (-1 == close(err))
-                  perror("close");
+               if (-1 == dup2(pipes[writepipe][1], 2))
+               {
+                  perror("dup2");
+                  return 1;
+               }
+            }
+            //close any pipe-related fds remaining (besides 0, 1, 2, of course)
+            //pipes[readpipe][1] does not need to be closed because it was
+            //already closed, or never existed at all
+            if (pipes[readpipe][0] != -1)
+            {
+               if (-1 == close(pipes[readpipe][0]))
+                  perror("close 1");
+               pipes[readpipe][0] = -1;
+            }
+            if (pipes[writepipe][0] != -1)
+            {
+               if (-1 == close(pipes[writepipe][0]))
+                  perror("close 2");
+               pipes[writepipe][0] = -1;
+            }
+            if (pipes[writepipe][1] != -1)
+            {
+               if (-1 == close(pipes[writepipe][1]))
+                  perror("close 3");
+               pipes[writepipe][1] = -1;
             }
 
             //assert(cerr << "pipe fds: " << in << " " << out << " " << err << endl);
             //assert(cerr << commandstart << " " << commandend << endl);
 
-            // convert command (a vector) into a null-terminated array of cstrings,
-            // resolving input/output redirection from <, >, >> as you go along (TODO)
-/*#define*/ unsigned argc = commandend - commandstart + 2;
-            //assert(cerr << "argc: " << argc << endl);
+            /* Build `argv` from `command` and handle redirection involving <, >, >> */
+            unsigned argc = commandend - commandstart + 2;
             char ** argv = new char*[argc];
             for (unsigned i = commandstart; i <= commandend; ++i)
             {
@@ -418,10 +402,10 @@ unsigned execute_command(vector<string> command)
             cout << endl;
 
 
-            // execute the command
+            /* Execute the command */
             execvp(argv[0], argv);
 
-            // if we get to this point, execvp failed. print an error message
+            /* `execvp` failed, print error message and kill child */
             char errorStr[80];
             strcpy(errorStr, "Failed to execute \"");
             // truncate argv[0] to 50 characters
@@ -440,11 +424,15 @@ unsigned execute_command(vector<string> command)
             perror(errorStr);
             exit(1);
          }
-         // fork succeeded, and you are the parent
+         /* fork succeeded, and you are the parent */
+
          childpids.push_back(pid);  // record the child's pid to wait on it later
 
          // close unnecessary pipes (pipes[writepipe][1], pipes[readpipe][0]),
-         // and set them to -1
+         // and set them to -1. These pipes are connected to the child that just
+         // executed, so we dont need to keep track of them anymore
+         // pipes[writepipe][0] stays open because the next command (should one
+         // exist) will need to read from it
          if (pipes[writepipe][1] != -1)
          {
             if (-1 == close(pipes[writepipe][1]))
@@ -455,6 +443,7 @@ unsigned execute_command(vector<string> command)
          {
             if (-1 == close(pipes[readpipe][0]))
                perror("closing readpipe 0");
+            pipes[readpipe][0] = -1;
          }
 
          // advance commandend and commandstart
@@ -463,6 +452,7 @@ unsigned execute_command(vector<string> command)
       }
    }
 
+   /* Waiting on children, collecting exit status */
    int status;
    bool lastchildreturned = false;
    for (unsigned i = 0; i < childpids.size(); ++i)
