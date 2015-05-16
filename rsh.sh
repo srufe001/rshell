@@ -20,3 +20,10 @@ echo "$cmds" | bin/rshell
 # show rediection at front of line "2> /dev/null ls"
 
 # incomplete forms of > >> etc "echo hello >"
+
+# show multiple redirections to same file
+
+# show something like "cat <<< "hello" > hi.txt" show that " works properly
+
+# show test case with " that doesnt end. or maybe just ignore ", it wasn't
+# required, was it? I'm not sure if it is

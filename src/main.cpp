@@ -38,6 +38,8 @@
  *  improve error message for "| command"
  *  still getting WIFEXITED FAILED on single command after "| |"
  *  FIXED (Don't ever "return 1" in the child! use exit(1)) "ls >" or ls ">>", after this "exit" does not work properly
+ *  take a look at writing to a file with multiple different processes. "cat <<<
+ *  "hi" > bla.txt | cat <<< "there" > bla.txt"
  *
  */
 
@@ -274,13 +276,15 @@ int main()
                for (++i; i < userin.size() && userin.at(i) != '\"'; ++i)
                {
                   // allow backslash escaping of "
-                  if (userin.at(i) == '\\' && i < userin.size() - 1 && userin.at(++i) == '\"')
+                  if (userin.at(i) == '\\' && i < userin.size() - 1 && userin.at(i + 1) == '\"')
                   {
+                     ++i;
                      current_command.back().push_back(userin.at(i)); 
                   } else {
                      current_command.back().push_back(userin.at(i)); 
                   }
                }
+               ++i;
             } else {
                current_command.back().push_back(userin.at(i));
                ++i;
@@ -311,6 +315,10 @@ unsigned execute_command(vector<string> command)
       cerr << "rshell: You must have a program to run after each pipe\n";
       return 1;
    }
+
+   for (unsigned i = 0; i < command.size(); ++i)
+      cout << command.at(i) << " # ";
+   cout << endl;
 
    /* Begin executing the commands */
 
