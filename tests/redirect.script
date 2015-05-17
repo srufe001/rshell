@@ -1,4 +1,4 @@
-Script started on Sun 17 May 2015 12:12:18 AM PDT
+Script started on Sun 17 May 2015 12:18:42 AM PDT
 Daemon gpg-agent already running.
 ~
 srufe001@hammer $ cd cs100/rshell
@@ -26,8 +26,6 @@ srufe001@hammer.cs.ucr.edu$ bin/myecho 1 hello | exit | cat <<< "hello" # show b
 bin/rshell
 srufe001@hammer.cs.ucr.edu$ ##### testing >
 srufe001@hammer.cs.ucr.edu$ rm bla.txt bla2.txt
-rm: cannot remove `bla.txt': No such file or directory
-rm: cannot remove `bla2.txt': No such file or directory
 srufe001@hammer.cs.ucr.edu$ bin/myecho 1 hello sam > bla.txt # show basic use, and that > can create a file
 srufe001@hammer.cs.ucr.edu$ cat bla.txt
 hello sam
@@ -206,9 +204,15 @@ srufe001@hammer.cs.ucr.edu$ bin/myecho 1 hello sam > bla.txt | cat # show that w
 srufe001@hammer.cs.ucr.edu$ cat bla.txt
 hello sam
 srufe001@hammer.cs.ucr.edu$ bin/myecho 1 hello | false && bin/myecho 1 this wont print # show that connectors take the last truth value in the pipe chain 
+srufe001@hammer.cs.ucr.edu$ ##### the example in the homework specification
+srufe001@hammer.cs.ucr.edu$ cat < bla.txt | tr A-Z a-z | tee bla2.txt | tr a-z A-Z > bla3.txt
+srufe001@hammer.cs.ucr.edu$ cat bla2.txt
+hello sam
+srufe001@hammer.cs.ucr.edu$ cat bla3.txt
+HELLO SAM
 srufe001@hammer.cs.ucr.edu$ exit
 ~/cs100/rshell
 srufe001@hammer $ exit
 exit
 
-Script done on Sun 17 May 2015 12:12:23 AM PDT
+Script done on Sun 17 May 2015 12:18:47 AM PDT

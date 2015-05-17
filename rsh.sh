@@ -121,6 +121,10 @@ cat bla.txt
 bin/myecho 1 hello sam > bla.txt | cat # show that when stdout is redirected, it does not go through the pipe
 cat bla.txt
 bin/myecho 1 hello | false && bin/myecho 1 this wont print # show that connectors take the last truth value in the pipe chain 
+##### the example in the homework specification
+cat < bla.txt | tr A-Z a-z | tee bla2.txt | tr a-z A-Z > bla3.txt
+cat bla2.txt
+cat bla3.txt
 exit\
 "
 echo bin/rshell
