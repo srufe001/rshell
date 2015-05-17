@@ -103,7 +103,7 @@ int main()
       string userin;
       getline(cin, userin);
       //assert(cerr << "################ user inputted: " << userin << endl);
-      #cout << userin << "\n";
+      //cout << userin << "\n";
 
       // ==============================
       //       Process user input
