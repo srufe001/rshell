@@ -71,6 +71,23 @@ Any characters following a `#` are ignored by the shell
 $ echo this will be printed # but this will not
 ```
 
+### Connectors ###
+
+rshell supports the following connectors: pipe (`|`), redirection to file (`>`),
+append to file (`>>`), read from file (`<`), and read from string (`<<<`). Some
+examples:
+```
+$ echo hello | cat            # this will print "hello"
+$ echo hello > file.txt
+$ echo world >> file.txt      # file.txt now contains "hello" and "world"
+$ cat <<< "hello world"       # this will print "hello world"
+$ cat <<< hello       # this will print "hello"
+```
+You can specify the file descriptor to redirect when using `>` or `>>`:
+```
+$ echo hello 2> file.txt      # redirects stderr
+```
+
 ## Errors ##
 
 If a command fails to execute (the fork() syscall fails), rshell will cancel the execution of the rest of
