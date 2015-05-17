@@ -81,7 +81,7 @@ $ echo hello | cat            # this will print "hello"
 $ echo hello > file.txt
 $ echo world >> file.txt      # file.txt now contains "hello" and "world"
 $ cat <<< "hello world"       # this will print "hello world"
-$ cat <<< hello       # this will print "hello"
+$ cat <<< hello               # this will print "hello"
 ```
 You can specify the file descriptor to redirect when using `>` or `>>`:
 ```
