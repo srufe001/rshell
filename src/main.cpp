@@ -316,10 +316,6 @@ unsigned execute_command(vector<string> command)
       return 1;
    }
 
-   for (unsigned i = 0; i < command.size(); ++i)
-      cout << command.at(i) << " # ";
-   cout << endl;
-
    /* Begin executing the commands */
 
    // `childpids` includes the pid of every child, in order, such that
@@ -462,7 +458,7 @@ unsigned execute_command(vector<string> command)
                      ++i;
                      continue;
                   } else {
-                     cerr << "you must give `<' a file to read from\n" << endl;
+                     cerr << "you must give `<' a file to read from" << endl;
                      exit(1);
                   }
                }
@@ -500,7 +496,7 @@ unsigned execute_command(vector<string> command)
                      ++i;
                      continue;
                   } else {
-                     cerr << "you must give `<<<' a string to use as input\n" << endl;
+                     cerr << "you must give `<<<' a string to use as input" << endl;
                      exit(1);
                   }
                }
@@ -520,9 +516,12 @@ unsigned execute_command(vector<string> command)
                         perror("dup2");
                         exit(1);
                      }
-                     if (-1 == close(initialfd))
+                     if (initialfd != targetfd)
                      {
-                        perror("close");
+                        if (-1 == close(initialfd))
+                        {
+                           perror("close");
+                        }
                      }
                      i += 2;
                      continue;
@@ -547,9 +546,12 @@ unsigned execute_command(vector<string> command)
                         perror("dup2");
                         exit(1);
                      }
-                     if (-1 == close(initialfd))
+                     if (initialfd != targetfd)
                      {
-                        perror("close");
+                        if (-1 == close(initialfd))
+                        {
+                           perror("close");
+                        }
                      }
                      i += 2;
                      continue;

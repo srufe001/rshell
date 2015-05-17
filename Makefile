@@ -27,8 +27,5 @@ bin/mv : src/mv.cpp
 	-@mkdir -p bin
 	g++ $(FLAGS) src/mv.cpp -o bin/mv
 
-run : rshell
-	bin/rshell
-
 clean :
 	rm -rf bin
