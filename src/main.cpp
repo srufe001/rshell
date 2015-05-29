@@ -43,8 +43,18 @@
  *
  */
 
+/*  signals and pwd:
+ *  check that the ~ substitution for the prompt works when it should be ~.*, ~,
+ *  or just the pwd (this is when you're not in the home directory)
+ *  can't use "cd -" after "cd"?
+ */
 // comment the next line for information about rshells internal stuff as it executes commands
 #define NDEBUG
+// uncomment this line if you dont want color codes (such as making a script
+// file
+#define COLOR_PROMPT
+// uncomment this line if you're making a script file
+//#define ECHO_COMMAND
 
 #include<iostream>
 #include<string>
@@ -59,14 +69,24 @@
 #include<sys/wait.h>
 #include<stdio.h>
 #include<fcntl.h>
+#include<signal.h>
 
 using namespace std;
 
 unsigned execute_command(vector<string>);
-bool isAFd(const string);
+bool isAFd(const string&);
+void changedir(const string&);
+void siginthandler(int);
 
 int main()
 {
+   // register signal handlers
+   struct sigaction s;
+   s.sa_handler = siginthandler;
+   if (-1 == sigaction(SIGINT, &s, NULL))
+   {
+      perror("sigaction");
+   }
    // get username and hostname to print at the prompt
    char * usernameptr = getlogin();
    string username;
@@ -96,14 +116,42 @@ int main()
    // this loop gets input from the user and executes it
    while (true)
    {
+      /* Output Prompt */
+      // get pwd
+      char * pwdptr = getenv("PWD");
+      string pwd;
+      if (pwdptr == NULL)
+         perror("could not get PWD");
+      else
+         pwd = pwdptr;
+      // if the pwd contains $HOME, replace it with "~"
+      char * home = getenv("HOME");
+      if (home == NULL)
+      {
+         perror("could not get home directory");
+      } else if (pwd.size() >= strlen(home))
+      {
+         if (pwd.substr(0, strlen(home)) == home)
+         {
+            pwd = pwd.substr(strlen(home) - 1);
+            pwd.at(0) = '~';
+         }
+      }
       // print prompt
-      cout /*<< "\x1b[32m"*/ << username << "@" << hostname << "$ " /*<< "\x1b[0m"*/;
+#ifdef COLOR_PROMPT
+      cout << "\x1b[35m" << username << "@" << hostname << ":" << pwd << "$ " << "\x1b[0m";
+#else
+      cout  << username << "@" << hostname << ":" << pwd << "$ ";
+#endif
 
-      // get user input
+      /* Get User Input */
       string userin;
+      cin.clear();
       getline(cin, userin);
       //assert(cerr << "################ user inputted: " << userin << endl);
-      //cout << userin << "\n";
+#ifdef ECHO_COMMAND 
+      cout << userin << "\n";
+#endif
 
       // ==============================
       //       Process user input
@@ -119,7 +167,7 @@ int main()
       // is then erased in preparation for the next command
       // strings are added by adding each character to the last string in
       // current_command. When a whitespace, or other special character (;, &&,
-      // ||, |, <, >, >>, >>>) is found, a new, empty string is pushed to the
+      // ||, |, <, >, >>, <<< is found, a new, empty string is pushed to the
       // back of current_command
       vector<string> current_command;
       // newWord is true when the last word has been completed and
@@ -369,228 +417,260 @@ unsigned execute_command(vector<string> command)
             }
          }
 
+         // setting this to true prevents forking and execution of any command
+         bool builtin = false;
          /* Check for special builtin commands */
-         if (command.at(commandstart) == "exit")
+         if (command.at(commandstart) == "cd" )
+         {
+            // code for cd TODO
+            builtin = true;
+            // check usage
+            if (commandend - commandstart > 1)
+            {
+               cout << "cd takes at most 1 argument\n";
+            } else
+            {
+               // determine the path to change directory to
+               if (commandend == commandstart) // just "cd"
+               {
+                  char * homeptr = getenv("HOME");
+                  if (NULL == homeptr)
+                  {
+                     perror("getenv");
+                  } else 
+                  {
+                     string newdir(homeptr);
+                     changedir(newdir);
+                  }
+               } else
+               {
+                  changedir(command.at(commandstart + 1));
+               }
+            }
+         } else if (command.at(commandstart) == "exit")
          {
             exit(0);
          }
-
-         // execute command as normal. begin by forking yourself
-         int pid = fork();
-         // fork failed
-         if (pid == -1)
+         
+         if (!builtin)
          {
-            perror("forking failed");
-            return 1;
-         }
-         /* Fork succeeded, and you are the child */
-         if (pid == 0)
-         {
-            /* Prepare child's fds for piping */
-            // dup fds for pipes into stdin, stdout, stderr
-            if (pipes[readpipe][0] != -1)
+            // execute command as normal. begin by forking yourself
+            int pid = fork();
+            // fork failed
+            if (pid == -1)
             {
-               if (-1 == dup2(pipes[readpipe][0], 0))
+               perror("forking failed");
+               return 1;
+            }
+            /* Fork succeeded, and you are the child */
+            if (pid == 0)
+            {
+               /* Prepare child's fds for piping */
+               // dup fds for pipes into stdin, stdout, stderr
+               if (pipes[readpipe][0] != -1)
                {
-                  perror("dup2");
-                  exit(1);
-               }
-            }
-            if (pipes[writepipe][1] != -1)
-            {
-               if (-1 == dup2(pipes[writepipe][1], 1))
-               {
-                  perror("dup2");
-                  exit(1);
-               }
-               if (-1 == dup2(pipes[writepipe][1], 2))
-               {
-                  perror("dup2");
-                  exit(1);
-               }
-            }
-            //close any pipe-related fds remaining (besides 0, 1, 2, of course)
-            //pipes[readpipe][1] does not need to be closed because it was
-            //already closed, or never existed at all
-            if (pipes[readpipe][0] != -1)
-            {
-               if (-1 == close(pipes[readpipe][0]))
-                  perror("close 1");
-               pipes[readpipe][0] = -1;
-            }
-            if (pipes[writepipe][0] != -1)
-            {
-               if (-1 == close(pipes[writepipe][0]))
-                  perror("close 2");
-               pipes[writepipe][0] = -1;
-            }
-            if (pipes[writepipe][1] != -1)
-            {
-               if (-1 == close(pipes[writepipe][1]))
-                  perror("close 3");
-               pipes[writepipe][1] = -1;
-            }
-
-            //assert(cerr << "pipe fds: " << in << " " << out << " " << err << endl);
-            //assert(cerr << commandstart << " " << commandend << endl);
-
-            /* Build `argv` from `command` and handle redirection involving <, >, >> */
-            unsigned argc = 0;
-            char ** argv = new char*[commandend - commandstart + 2];
-            for (unsigned i = commandstart; i <= commandend; ++i)
-            {
-               // check if next command is a redirection, and handle it if it is
-               if (command.at(i) == "<")
-               {
-                  if (i <= commandend - 1)
+                  if (-1 == dup2(pipes[readpipe][0], 0))
                   {
-                     if (-1 == close(0))
-                     {
-                        perror("close");
-                        exit(1);
-                     }
-                     // open will use fd 0, because I just closed it
-                     if (-1 == open(command.at(i + 1).c_str(), O_RDONLY)) 
-                     {
-                        perror("open");
-                        exit(1);
-                     }
-                     ++i;
-                     continue;
-                  } else {
-                     cerr << "you must give `<' a file to read from" << endl;
+                     perror("dup2");
                      exit(1);
                   }
                }
-               if (command.at(i) == "<<<")
+               if (pipes[writepipe][1] != -1)
                {
-                  if (i <= commandend - 1)
+                  if (-1 == dup2(pipes[writepipe][1], 1))
                   {
-                     // create a pipe to hold the string
-                     int stringholder[2];
-                     if (-1 == pipe(stringholder))
-                     {
-                        perror("pipe");
-                        exit(1);
-                     }
-                     // add a newline to the user's input
-                     char *userstr = new char[command.at(i + 1).size() + 1];
-                     strcpy(userstr, command.at(i + 1).c_str());
-                     userstr[command.at(i + 1).size()] = '\n';
-                     if (-1 == write(stringholder[1], userstr, command.at(i + 1).size() + 1))
-                     {
-                        perror("write");
-                        exit(1); 
-                     }
-                     delete[] userstr;
-                     if (-1 == close(stringholder[1]))
-                     {
-                        perror("close");
-                        exit(1);
-                     }
-                     if (-1 == dup2(stringholder[0], 0))
-                     {
-                        perror("dup2");
-                        exit(1);
-                     }
-                     ++i;
-                     continue;
-                  } else {
-                     cerr << "you must give `<<<' a string to use as input" << endl;
+                     perror("dup2");
+                     exit(1);
+                  }
+                  if (-1 == dup2(pipes[writepipe][1], 2))
+                  {
+                     perror("dup2");
                      exit(1);
                   }
                }
-               if (command.at(i) == ">")
+               //close any pipe-related fds remaining (besides 0, 1, 2, of course)
+               //pipes[readpipe][1] does not need to be closed because it was
+               //already closed, or never existed at all
+               if (pipes[readpipe][0] != -1)
                {
-                  if (i <= commandend - 2)
+                  if (-1 == close(pipes[readpipe][0]))
+                     perror("close 1");
+                  pipes[readpipe][0] = -1;
+               }
+               if (pipes[writepipe][0] != -1)
+               {
+                  if (-1 == close(pipes[writepipe][0]))
+                     perror("close 2");
+                  pipes[writepipe][0] = -1;
+               }
+               if (pipes[writepipe][1] != -1)
+               {
+                  if (-1 == close(pipes[writepipe][1]))
+                     perror("close 3");
+                  pipes[writepipe][1] = -1;
+               }
+
+               //assert(cerr << "pipe fds: " << in << " " << out << " " << err << endl);
+               //assert(cerr << commandstart << " " << commandend << endl);
+
+               /* Build `argv` from `command` and handle redirection involving <, >, >> */
+               unsigned argc = 0;
+               char ** argv = new char*[commandend - commandstart + 2];
+               for (unsigned i = commandstart; i <= commandend; ++i)
+               {
+                  // check if next command is a redirection, and handle it if it is
+                  if (command.at(i) == "<")
                   {
-                     int targetfd = atoi(command.at(i + 1).c_str());
-                     int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR); 
-                     if (-1 == initialfd)
+                     if (i <= commandend - 1)
                      {
-                        perror("open");
-                        exit(1);
-                     }
-                     if (-1 == dup2(initialfd, targetfd))
-                     {
-                        perror("dup2");
-                        exit(1);
-                     }
-                     if (initialfd != targetfd)
-                     {
-                        if (-1 == close(initialfd))
+                        if (-1 == close(0))
                         {
                            perror("close");
+                           exit(1);
                         }
+                        // open will use fd 0, because I just closed it
+                        if (-1 == open(command.at(i + 1).c_str(), O_RDONLY)) 
+                        {
+                           perror("open");
+                           exit(1);
+                        }
+                        ++i;
+                        continue;
+                     } else {
+                        cerr << "you must give `<' a file to read from" << endl;
+                        exit(1);
                      }
-                     i += 2;
-                     continue;
-                  } else {
-                     cerr << "rshell: You must give `>' a file to redirect into" << endl;
-                     exit(1);
                   }
-               }
-               if (command.at(i) == ">>")
-               {
-                  if (i <= commandend - 2)
+                  if (command.at(i) == "<<<")
                   {
-                     int targetfd = atoi(command.at(i + 1).c_str());
-                     int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR); 
-                     if (-1 == initialfd)
+                     if (i <= commandend - 1)
                      {
-                        perror("open");
-                        exit(1);
-                     }
-                     if (-1 == dup2(initialfd, targetfd))
-                     {
-                        perror("dup2");
-                        exit(1);
-                     }
-                     if (initialfd != targetfd)
-                     {
-                        if (-1 == close(initialfd))
+                        // create a pipe to hold the string
+                        int stringholder[2];
+                        if (-1 == pipe(stringholder))
+                        {
+                           perror("pipe");
+                           exit(1);
+                        }
+                        // add a newline to the user's input
+                        char *userstr = new char[command.at(i + 1).size() + 1];
+                        strcpy(userstr, command.at(i + 1).c_str());
+                        userstr[command.at(i + 1).size()] = '\n';
+                        if (-1 == write(stringholder[1], userstr, command.at(i + 1).size() + 1))
+                        {
+                           perror("write");
+                           exit(1); 
+                        }
+                        delete[] userstr;
+                        if (-1 == close(stringholder[1]))
                         {
                            perror("close");
+                           exit(1);
                         }
+                        if (-1 == dup2(stringholder[0], 0))
+                        {
+                           perror("dup2");
+                           exit(1);
+                        }
+                        ++i;
+                        continue;
+                     } else {
+                        cerr << "you must give `<<<' a string to use as input" << endl;
+                        exit(1);
                      }
-                     i += 2;
-                     continue;
-                  } else {
-                     cerr << "rshell: You must give `>>' a file to redirect into" << endl;
-                     exit(1);
                   }
+                  if (command.at(i) == ">")
+                  {
+                     if (i <= commandend - 2)
+                     {
+                        int targetfd = atoi(command.at(i + 1).c_str());
+                        int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR); 
+                        if (-1 == initialfd)
+                        {
+                           perror("open");
+                           exit(1);
+                        }
+                        if (-1 == dup2(initialfd, targetfd))
+                        {
+                           perror("dup2");
+                           exit(1);
+                        }
+                        if (initialfd != targetfd)
+                        {
+                           if (-1 == close(initialfd))
+                           {
+                              perror("close");
+                           }
+                        }
+                        i += 2;
+                        continue;
+                     } else {
+                        cerr << "rshell: You must give `>' a file to redirect into" << endl;
+                        exit(1);
+                     }
+                  }
+                  if (command.at(i) == ">>")
+                  {
+                     if (i <= commandend - 2)
+                     {
+                        int targetfd = atoi(command.at(i + 1).c_str());
+                        int initialfd = open(command.at(i + 2).c_str(), O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR); 
+                        if (-1 == initialfd)
+                        {
+                           perror("open");
+                           exit(1);
+                        }
+                        if (-1 == dup2(initialfd, targetfd))
+                        {
+                           perror("dup2");
+                           exit(1);
+                        }
+                        if (initialfd != targetfd)
+                        {
+                           if (-1 == close(initialfd))
+                           {
+                              perror("close");
+                           }
+                        }
+                        i += 2;
+                        continue;
+                     } else {
+                        cerr << "rshell: You must give `>>' a file to redirect into" << endl;
+                        exit(1);
+                     }
+                  }
+                  argv[argc] = new char[command.at(i).size() + 1];
+                  strcpy(argv[argc], command.at(i).c_str());
+                  ++argc;
                }
-               argv[argc] = new char[command.at(i).size() + 1];
-               strcpy(argv[argc], command.at(i).c_str());
-               ++argc;
-            }
-            argv[argc] = NULL;
+               argv[argc] = NULL;
 
-            /* Execute the command */
-            execvp(argv[0], argv);
+               /* Execute the command */
+               execvp(argv[0], argv);
 
-            /* `execvp` failed, print error message and kill child */
-            char errorStr[80];
-            strcpy(errorStr, "Failed to execute \"");
-            // truncate argv[0] to 50 characters
-            // I don't know the max so I can't risk overflowing errorStr
-            if (strlen(argv[0]) > 50)
-            {
-               // I can screw with this string because no one's using it after this,
-               // because I am doing exit(1)
-               argv[0][47] = '.';
-               argv[0][48] = '.';
-               argv[0][49] = '.';
-               argv[0][50] = '\0';
+               /* `execvp` failed, print error message and kill child */
+               char errorStr[80];
+               strcpy(errorStr, "Failed to execute \"");
+               // truncate argv[0] to 50 characters
+               // I don't know the max so I can't risk overflowing errorStr
+               if (strlen(argv[0]) > 50)
+               {
+                  // I can screw with this string because no one's using it after this,
+                  // because I am doing exit(1)
+                  argv[0][47] = '.';
+                  argv[0][48] = '.';
+                  argv[0][49] = '.';
+                  argv[0][50] = '\0';
+               }
+               strcat(errorStr, argv[0]);
+               strcat(errorStr, "\"");
+               perror(errorStr);
+               exit(1);
             }
-            strcat(errorStr, argv[0]);
-            strcat(errorStr, "\"");
-            perror(errorStr);
-            exit(1);
+            /* fork succeeded, and you are the parent */
+
+            childpids.push_back(pid);  // record the child's pid to wait on it later
          }
-         /* fork succeeded, and you are the parent */
-
-         childpids.push_back(pid);  // record the child's pid to wait on it later
 
          // close unnecessary pipes (pipes[writepipe][1], pipes[readpipe][0]),
          // and set them to -1. These pipes are connected to the child that just
@@ -647,7 +727,7 @@ unsigned execute_command(vector<string> command)
    return 1;   // if the child did not exit normally, assume that the return value is a fail
 }
 
-bool isAFd(const string s)
+bool isAFd(const string& s)
 {
    for (unsigned i = 0; i < s.size(); ++i)
    {
@@ -655,4 +735,59 @@ bool isAFd(const string s)
          return false;
    }
    return true;
+}
+
+void changedir(const string& s)
+{
+   // check for "-"
+   string newdir;
+   if (s == "-")
+   {
+      char * oldpwdptr = getenv("OLDPWD");
+      if (NULL == oldpwdptr)
+      {
+         perror("getenv");
+      } else
+      {
+         newdir = oldpwdptr;
+      }
+   } else
+   {
+      newdir = s;
+   }
+   // change directory, update PWD and OLDPWD
+   if (-1 == chdir(newdir.c_str()))
+   {
+      perror("chdir");
+      return;
+   }
+   char * pwdptr = getenv("PWD");
+   if (NULL == pwdptr)
+   {
+      perror("getenv PWD");
+      return;
+   }
+   if (-1 == setenv("OLDPWD", pwdptr, 1))
+   {
+      perror("setenv OLDPWD");
+   }
+   char * newdirfullpath = get_current_dir_name();
+   if (-1 == setenv("PWD", newdirfullpath, 1))
+   {
+      perror("setenv PWD");
+   }
+   free(newdirfullpath);
+}
+
+int counter = 0;
+void siginthandler(int s)
+{
+   //cout << "you pressed control C, dummy!\n";
+   ++counter;
+   if (counter == 5)
+   {
+      exit(0);
+   }
+   cout << endl;
+   return;
 }
