@@ -70,8 +70,14 @@
 #include<stdio.h>
 #include<fcntl.h>
 #include<signal.h>
+#include<errno.h>
 
 using namespace std;
+
+bool killChildren; // SIGINT sets this to true
+// `childpids` includes the pid of every child, in order, such that
+// `childpids.back()` contains the pid of the last child
+vector<int> childpids;
 
 unsigned execute_command(vector<string>);
 bool isAFd(const string&);
@@ -116,6 +122,7 @@ int main()
    // this loop gets input from the user and executes it
    while (true)
    {
+      killChildren = false;
       /* Output Prompt */
       // get pwd
       char * pwdptr = getenv("PWD");
@@ -356,6 +363,7 @@ int main()
 // give the appropriate argument the value -1
 unsigned execute_command(vector<string> command)
 {
+   if (killChildren) return 1; // dont make new children if you want to kill them (because of sigint)
    if (command.size() == 0) return 0;  // no command returns true
 
    if (command.back() == "|")
@@ -366,9 +374,6 @@ unsigned execute_command(vector<string> command)
 
    /* Begin executing the commands */
 
-   // `childpids` includes the pid of every child, in order, such that
-   // `childpids.back()` contains the pid of the last child
-   vector<int> childpids;
    // `pipes` contains two pairs of file descriptors to pipes. One contains
    // the pipe that the next command should read from, the other contains the
    // pipe that the next command should write to. Which pipe is which is
@@ -383,7 +388,7 @@ unsigned execute_command(vector<string> command)
    // to execute
    unsigned commandstart = 0;
    unsigned commandend;
-   for (commandend = 0; commandend < command.size(); ++commandend)
+   for (commandend = 0; commandend < command.size() && !killChildren; ++commandend)
    {
       if (command.at(commandend) == "|" || commandend == command.size() - 1)
       {
@@ -695,26 +700,44 @@ unsigned execute_command(vector<string> command)
          commandstart = commandend + 1;
       }
    }
+   // kill children if necessary. this is for the case where SIGINT is caught
+   // during execute_command, so some children are created after the SIGINT
+   // handler raises SIGINT on them. we need to kill these children
+   if (killChildren)
+   {
+      for (unsigned i = 0; i < childpids.size(); ++i)
+      {
+         if (-1 == kill(childpids.at(i), SIGINT))
+         {
+            perror("kill");
+         }
+      }
+   }
 
    /* Waiting on children, collecting exit status */
    int status;
    bool lastchildreturned = false;
-   for (unsigned i = 0; i < childpids.size(); ++i)
+   for (unsigned i = 0; i < childpids.size();)
    {
       int stat;
       int childpid;
       if (-1 == (childpid = wait(&stat)))
       {
-         perror("wait failed");
-         exit(1);
+         if (errno != EINTR)
+         {
+            perror("wait failed");
+            exit(1);
+         }
       } else if (childpid == childpids.back())
       {
          // update status iff the waited-on child was the final command
          status = stat;
          lastchildreturned = true;
+         ++i;
       }
       assert(cerr << "waited on child " << childpid << ", child was " << ((childpid == childpids.back()) ? "last" : "not last") << endl);
    }
+   childpids.clear();
    if (!lastchildreturned)
       return 1;
    // determine the return value of the last child
@@ -723,7 +746,7 @@ unsigned execute_command(vector<string> command)
       //assert(cerr << "==========RETURNED: " << WEXITSTATUS(status) << endl << endl);
       return WEXITSTATUS(status);
    }
-   cerr << "WIFEXITED failed\n";
+   //cerr << "WIFEXITED failed\n";
    return 1;   // if the child did not exit normally, assume that the return value is a fail
 }
 
@@ -779,15 +802,16 @@ void changedir(const string& s)
    free(newdirfullpath);
 }
 
-int counter = 0;
 void siginthandler(int s)
 {
-   //cout << "you pressed control C, dummy!\n";
-   ++counter;
-   if (counter == 5)
+   cout << "\n";
+   killChildren = true;
+   for (unsigned i = 0; i < childpids.size(); ++i)
    {
-      exit(0);
+      if (-1 == kill(childpids.at(i), SIGINT))
+      {
+         perror("kill");
+      }
    }
-   cout << endl;
    return;
 }
