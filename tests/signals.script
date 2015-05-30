@@ -1,0 +1,72 @@
+Script started on Sat 30 May 2015 12:39:03 AM PDT
+~
+srufe001@hammer $ cd cs100r[K/rshell
+~/cs100/rshell
+srufe001@hammer $ bin/rshell
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd bin # show cd working
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell/bin$ [0mcd .. # show .. working
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd . # show . working
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd /bin # show cd working on an absolute path
+[35msrufe001@hammer.cs.ucr.edu:/bin$ [0mcd -
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd bin src # show error message for 2 arguments
+cd takes at most 1 argument
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd notadir # show error message for 2 nonexistant directory
+chdir: No such file or directory
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd README.md # show error emssage         message for file
+chdir: Not a directory
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mcd # show cd into home directory
+[35msrufe001@hammer.cs.ucr.edu:~$ [0mecho $HOME
+$HOME
+[35msrufe001@hammer.cs.ucr.edu:~$ [0m# ignore that
+[35msrufe001@hammer.cs.ucr.edu:~$ [0m# show that the path displayed in prompts susb  bstitutes for ~ properly
+[35msrufe001@hammer.cs.ucr.edu:~$ [0m# here it works properly when in the home directory
+[35msrufe001@hammer.cs.ucr.edu:~$ [0mcd .. # show that it do      ~    ~ does not show up oust  tside of the home directory
+[35msrufe001@hammer.cs.ucr.edu:/home/csmajs$ [0mcd -
+[35msrufe001@hammer.cs.ucr.edu:~$ [0mcd cs100 # show that it works properly under the home directory
+[35msrufe001@hammer.cs.ucr.edu:~/cs100$ [0m# show ctrl-c
+[35msrufe001@hammer.cs.ucr.edu:~/cs100$ [0mping google.com
+PING google.com (74.125.224.105) 56(84) bytes of data.
+64 bytes from lax02s19-in-f9.1e100.net (74.125.224.105): icmp_seq=1 ttl=55 time=5.11 ms
+^C
+--- google.com ping statistics ---
+1 packets transmitted, 1 received, 0% packet loss, time 573ms
+you pressed ctrl-c
+rtt min/avg/max/mdev = 5.110/5.110/5.110/0.000 ms
+[35msrufe001@hammer.cs.ucr.edu:~/cs100$ [0m# show ctrl-c working  wihtout a c                           what ctrl-c does without a command rn unning
+[35msrufe001@hammer.cs.ucr.edu:~/cs100$ [0m^C
+~/cs100/rshell
+srufe001@hammer $ bin/rshell
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0m# show ctrl-z working
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mping gogole    ogle.com
+PING google.com (74.125.224.100) 56(84) bytes of data.
+64 bytes from lax02s19-in-f4.1e100.net (74.125.224.100): icmp_seq=1 ttl=55 time=5.24 ms
+^Zyou pressed ctrl-z
+suspending 14690
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mfg #    ps # show that th epr    e process is still e          still exists
+  PID TTY          TIME CMD
+14434 pts/10   00:00:00 bash
+14689 pts/10   00:00:00 rshell
+14690 pts/10   00:00:00 ping
+14698 pts/10   00:00:00 ps
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mfg # show that fg works
+64 bytes from lax02s19-in-f4.1e100.net (74.125.224.100): icmp_seq=2 ttl=55 time=5.13 ms
+64 bytes from lax02s19-in-f4.1e100.net (74.125.224.100): icmp_seq=3 ttl=55 time=5.25 ms
+^Zyou pressed ctrl-z
+suspending 14690
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mbg # show that bg works, and that ctrlz and ctrlc do not affect the background process
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0m64 bytes from lax02s19-in-f4.1e100.net (74.125.224.100): icmp_seq=4 ttl=55 time=5.24 ms
+64 bytes from lax02s19-in-f4.1e100.net (74.125.224.100): icmp_seq=5 ttl=55 time=5.13 ms
+^Zyou pressed ctrl-z
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mps
+  PID TTY          TIME CMD
+14434 pts/10   00:00:00 bash
+14689 pts/10   00:00:00 rshell
+14690 pts/10   00:00:00 ping
+14756 pts/10   00:00:00 ps
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mkill -9 14690
+[35msrufe001@hammer.cs.ucr.edu:~/cs100/rshell$ [0mexit
+~/cs100/rshell
+srufe001@hammer $ exit
+exit
+
+Script done on Sat 30 May 2015 12:45:02 AM PDT
