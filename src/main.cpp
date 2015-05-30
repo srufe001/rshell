@@ -75,21 +75,31 @@
 using namespace std;
 
 bool killChildren; // SIGINT sets this to true
+bool suspendChildren; // SIGTSTP sets this to true
 // `childpids` includes the pid of every child, in order, such that
 // `childpids.back()` contains the pid of the last child
 vector<int> childpids;
+// this vector holds pids of the last suspended job
+vector<int> suspendedchildpids;
 
 unsigned execute_command(vector<string>);
 bool isAFd(const string&);
 void changedir(const string&);
-void siginthandler(int);
+void SIGINThandler(int);
+void SIGTSTPhandler(int);
 
 int main()
 {
    // register signal handlers
-   struct sigaction s;
-   s.sa_handler = siginthandler;
-   if (-1 == sigaction(SIGINT, &s, NULL))
+   struct sigaction s_sigint;
+   s_sigint.sa_handler = SIGINThandler;
+   if (-1 == sigaction(SIGINT, &s_sigint, NULL))
+   {
+      perror("sigaction");
+   }
+   struct sigaction s_sigtstp;
+   s_sigtstp.sa_handler = SIGTSTPhandler;
+   if (-1 == sigaction(SIGTSTP, &s_sigtstp, NULL))
    {
       perror("sigaction");
    }
@@ -123,6 +133,7 @@ int main()
    while (true)
    {
       killChildren = false;
+      suspendChildren = false;
       /* Output Prompt */
       // get pwd
       char * pwdptr = getenv("PWD");
@@ -363,7 +374,7 @@ int main()
 // give the appropriate argument the value -1
 unsigned execute_command(vector<string> command)
 {
-   if (killChildren) return 1; // dont make new children if you want to kill them (because of sigint)
+   if (killChildren || suspendChildren) return 1; // dont make new children if you want to kill them (because of sigint)
    if (command.size() == 0) return 0;  // no command returns true
 
    if (command.back() == "|")
@@ -388,7 +399,8 @@ unsigned execute_command(vector<string> command)
    // to execute
    unsigned commandstart = 0;
    unsigned commandend;
-   for (commandend = 0; commandend < command.size() && !killChildren; ++commandend)
+   bool stopexecuting = false;
+   for (commandend = 0; commandend < command.size() && !killChildren && !stopexecuting; ++commandend)
    {
       if (command.at(commandend) == "|" || commandend == command.size() - 1)
       {
@@ -427,7 +439,6 @@ unsigned execute_command(vector<string> command)
          /* Check for special builtin commands */
          if (command.at(commandstart) == "cd" )
          {
-            // code for cd TODO
             builtin = true;
             // check usage
             if (commandend - commandstart > 1)
@@ -451,6 +462,41 @@ unsigned execute_command(vector<string> command)
                {
                   changedir(command.at(commandstart + 1));
                }
+            }
+         } else if (command.at(commandstart) == "fg")
+         {
+            builtin = true;
+            stopexecuting = true;
+            // make sure that there aren't other commands that need to be waited
+            // on
+            if (commandstart != 0)
+            {
+               cout << "you may not use redirection with fg\n";
+            } else
+            {
+               for (unsigned j = 0; j < suspendedchildpids.size(); ++j)
+               {
+                  kill(suspendedchildpids.at(j), SIGCONT);
+                  childpids.push_back(suspendedchildpids.at(j));
+               }
+               suspendedchildpids.clear();
+            }
+         } else if (command.at(commandstart) == "bg")
+         {
+            builtin = true;
+            stopexecuting = true;
+            // make sure that there aren't other commands that need to be waited
+            // on
+            if (commandstart != 0)
+            {
+               cout << "you may not use redirection with bg\n";
+            } else
+            {
+               for (unsigned j = 0; j < suspendedchildpids.size(); ++j)
+               {
+                  kill(suspendedchildpids.at(j), SIGCONT);
+               }
+               suspendedchildpids.clear();
             }
          } else if (command.at(commandstart) == "exit")
          {
@@ -717,27 +763,48 @@ unsigned execute_command(vector<string> command)
    /* Waiting on children, collecting exit status */
    int status;
    bool lastchildreturned = false;
+   //cout << "beginning to wait on children" << endl;
    for (unsigned i = 0; i < childpids.size();)
    {
+      if (suspendChildren)
+      {
+         // raise SIGTSTP and move to suspendedchildpids all unwaited children
+         suspendedchildpids.clear();
+         for (unsigned j = i; j < childpids.size(); ++j)
+         {
+            cout << "suspending " << childpids.at(j) << endl;
+            kill(childpids.at(j), SIGTSTP);
+            suspendedchildpids.push_back(childpids.at(j));
+         }
+         break;
+      }
       int stat;
       int childpid;
       if (-1 == (childpid = wait(&stat)))
       {
+         //cout << "wait failed\n";
          if (errno != EINTR)
          {
             perror("wait failed");
             exit(1);
          }
-      } else if (childpid == childpids.back())
+         //cout << "wait got interrupted\n";
+         continue;
+      }
+      //cout << "wait did not fail" << endl;
+      if (childpid == childpids.back())
       {
          // update status iff the waited-on child was the final command
          status = stat;
          lastchildreturned = true;
-         ++i;
       }
+      ++i;
       assert(cerr << "waited on child " << childpid << ", child was " << ((childpid == childpids.back()) ? "last" : "not last") << endl);
    }
    childpids.clear();
+   killChildren = false;
+   suspendChildren = false;
+   //cout << childpids.size() << suspendedchildpids.size() << endl;
    if (!lastchildreturned)
       return 1;
    // determine the return value of the last child
@@ -802,8 +869,12 @@ void changedir(const string& s)
    free(newdirfullpath);
 }
 
-void siginthandler(int s)
+unsigned counter = 0;
+void SIGINThandler(int s)
 {
+   ++counter;
+   if (counter == 20) exit(0);
+   cout << "you pressed ctrl-c";
    cout << "\n";
    killChildren = true;
    for (unsigned i = 0; i < childpids.size(); ++i)
@@ -813,5 +884,15 @@ void siginthandler(int s)
          perror("kill");
       }
    }
+   return;
+}
+
+void SIGTSTPhandler(int s)
+{
+   ++counter;
+   if (counter == 20) exit(0);
+   cout << "you pressed ctrl-z";
+   cout << "\n";
+   suspendChildren = true;
    return;
 }
