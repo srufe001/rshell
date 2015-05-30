@@ -36,6 +36,13 @@ Type `exit` to exit rshell
 $ exit
 ```
 
+type `cd` to change directory
+```
+# cd dir       # changes directory to "dir"
+# cd -         # changes directory to the last directory you were in
+# cd           # changes directory to your home directory
+```
+
 ### Connectors ###
 
 rshell supports the connectors `&&`, `||`, and `;`.
@@ -71,7 +78,7 @@ Any characters following a `#` are ignored by the shell
 $ echo this will be printed # but this will not
 ```
 
-### Connectors ###
+### Redirection ###
 
 rshell supports the following connectors: pipe (`|`), redirection to file (`>`),
 append to file (`>>`), read from file (`<`), and read from string (`<<<`). Some
@@ -87,6 +94,11 @@ You can specify the file descriptor to redirect when using `>` or `>>`:
 ```
 $ echo hello 2> file.txt      # redirects stderr
 ```
+
+### Signals ###
+
+rshell supports `^C` (SIGINT) and `^Z` (SIGTSTP).
+After suspending a process with `^Z`, the `fg` command can be used to resume the process, or `bg` can be used to resume the process in the background.
 
 ## Errors ##
 
